@@ -41,7 +41,7 @@ function mysql2date( $format, $date, $translate = true ) {
 	if ( $translate ) {
 		return date_i18n( $format, $i );
 	} else {
-		return date( $format, $i );
+		return gmdate( $format, $i );
 	}
 }
 
@@ -83,7 +83,7 @@ function current_time( $type, $gmt = 0 ) {
  *
  * @since 0.71
  *
- * @global WP_Locale $wp_locale
+ * @global WP_Locale $wp_locale WordPress date and time locale object.
  *
  * @param string   $dateformatstring      Format to display the date.
  * @param int|bool $timestamp_with_offset Optional. A sum of Unix timestamp and timezone offset in seconds.
@@ -97,7 +97,7 @@ function date_i18n( $dateformatstring, $timestamp_with_offset = false, $gmt = fa
 	global $wp_locale;
 	$i = $timestamp_with_offset;
 
-	if ( false === $i ) {
+	if ( ! is_numeric( $i ) ) {
 		$i = current_time( 'timestamp', $gmt );
 	}
 
@@ -111,12 +111,12 @@ function date_i18n( $dateformatstring, $timestamp_with_offset = false, $gmt = fa
 	$dateformatstring = preg_replace( '/(?<!\\\\)r/', DATE_RFC2822, $dateformatstring );
 
 	if ( ( ! empty( $wp_locale->month ) ) && ( ! empty( $wp_locale->weekday ) ) ) {
-		$datemonth            = $wp_locale->get_month( date( 'm', $i ) );
+		$datemonth            = $wp_locale->get_month( gmdate( 'm', $i ) );
 		$datemonth_abbrev     = $wp_locale->get_month_abbrev( $datemonth );
-		$dateweekday          = $wp_locale->get_weekday( date( 'w', $i ) );
+		$dateweekday          = $wp_locale->get_weekday( gmdate( 'w', $i ) );
 		$dateweekday_abbrev   = $wp_locale->get_weekday_abbrev( $dateweekday );
-		$datemeridiem         = $wp_locale->get_meridiem( date( 'a', $i ) );
-		$datemeridiem_capital = $wp_locale->get_meridiem( date( 'A', $i ) );
+		$datemeridiem         = $wp_locale->get_meridiem( gmdate( 'a', $i ) );
+		$datemeridiem_capital = $wp_locale->get_meridiem( gmdate( 'A', $i ) );
 		$dateformatstring     = ' ' . $dateformatstring;
 		$dateformatstring     = preg_replace( '/([^\\\])D/', "\\1" . backslashit( $dateweekday_abbrev ), $dateformatstring );
 		$dateformatstring     = preg_replace( '/([^\\\])F/', "\\1" . backslashit( $datemonth ), $dateformatstring );
@@ -177,7 +177,7 @@ function date_i18n( $dateformatstring, $timestamp_with_offset = false, $gmt = fa
 			}
 		}
 	}
-	$j = @date( $dateformatstring, $i );
+	$j = gmdate( $dateformatstring, $i );
 
 	/**
 	 * Filters the date formatted based on the locale.
@@ -202,7 +202,7 @@ function date_i18n( $dateformatstring, $timestamp_with_offset = false, $gmt = fa
  *
  * @since 4.4.0
  *
- * @global WP_Locale $wp_locale
+ * @global WP_Locale $wp_locale WordPress date and time locale object.
  *
  * @param string $date Formatted date string.
  * @return string The date, declined if locale specifies it.
@@ -219,10 +219,12 @@ function wp_maybe_decline_date( $date ) {
 	 * translate this to 'on'. Do not translate into your own language.
 	 */
 	if ( 'on' === _x( 'off', 'decline months names: on or off' ) ) {
+
+		$months          = $wp_locale->month;
+		$months_genitive = $wp_locale->month_genitive;
+
 		// Match a format like 'j F Y' or 'j. F'
-		if ( @preg_match( '#^\d{1,2}\.? [^\d ]+#u', $date ) ) {
-			$months          = $wp_locale->month;
-			$months_genitive = $wp_locale->month_genitive;
+		if ( preg_match( '#^\d{1,2}\.? [^\d ]+#u', $date ) ) {
 
 			foreach ( $months as $key => $month ) {
 				$months[ $key ] = '# ' . $month . '( |$)#u';
@@ -230,6 +232,19 @@ function wp_maybe_decline_date( $date ) {
 
 			foreach ( $months_genitive as $key => $month ) {
 				$months_genitive[ $key ] = ' ' . $month . '$1';
+			}
+
+			$date = preg_replace( $months, $months_genitive, $date );
+		}
+
+		// Match a format like 'F jS' or 'F j' and change it to 'j F'
+		if ( preg_match( '#^[^\d ]+ \d{1,2}(st|nd|rd|th)? #u', trim( $date ) ) ) {
+			foreach ( $months as $key => $month ) {
+				$months[ $key ] = '#' . $month . ' (\d{1,2})(st|nd|rd|th)?#u';
+			}
+
+			foreach ( $months_genitive as $key => $month ) {
+				$months_genitive[ $key ] = '$1 ' . $month;
 			}
 
 			$date = preg_replace( $months, $months_genitive, $date );
@@ -252,7 +267,7 @@ function wp_maybe_decline_date( $date ) {
  *
  * @since 2.3.0
  *
- * @global WP_Locale $wp_locale
+ * @global WP_Locale $wp_locale WordPress date and time locale object.
  *
  * @param float $number   The number to convert based on locale.
  * @param int   $decimals Optional. Precision of the number of decimal places. Default 0.
@@ -415,7 +430,7 @@ function get_weekstartend( $mysqlstring, $start_of_week = '' ) {
 	$day = mktime( 0, 0, 0, $md, $mm, $my );
 
 	// The day of the week from the timestamp.
-	$weekday = date( 'w', $day );
+	$weekday = gmdate( 'w', $day );
 
 	if ( ! is_numeric( $start_of_week ) ) {
 		$start_of_week = get_option( 'start_of_week' );
@@ -513,7 +528,7 @@ function is_serialized( $data, $strict = true ) {
 		case 'i':
 		case 'd':
 			$end = $strict ? '$' : '';
-			return (bool) preg_match( "/^{$token}:[0-9.E-]+;$end/", $data );
+			return (bool) preg_match( "/^{$token}:[0-9.E+-]+;$end/", $data );
 	}
 	return false;
 }
@@ -729,7 +744,8 @@ function do_enclose( $content, $post_ID ) {
 	foreach ( (array) $post_links as $url ) {
 		if ( $url != '' && ! $wpdb->get_var( $wpdb->prepare( "SELECT post_id FROM $wpdb->postmeta WHERE post_id = %d AND meta_key = 'enclosure' AND meta_value LIKE %s", $post_ID, $wpdb->esc_like( $url ) . '%' ) ) ) {
 
-			if ( $headers = wp_get_http_headers( $url ) ) {
+			$headers = wp_get_http_headers( $url );
+			if ( $headers ) {
 				$len           = isset( $headers['content-length'] ) ? (int) $headers['content-length'] : 0;
 				$type          = isset( $headers['content-type'] ) ? $headers['content-type'] : '';
 				$allowed_types = array( 'video', 'audio' );
@@ -797,7 +813,8 @@ function wp_get_http_headers( $url, $deprecated = false ) {
  */
 function is_new_day() {
 	global $currentday, $previousday;
-	if ( $currentday != $previousday ) {
+
+	if ( $currentday !== $previousday ) {
 		return 1;
 	} else {
 		return 0;
@@ -927,7 +944,8 @@ function add_query_arg() {
 		}
 	}
 
-	if ( $frag = strstr( $uri, '#' ) ) {
+	$frag = strstr( $uri, '#' );
+	if ( $frag ) {
 		$uri = substr( $uri, 0, -strlen( $frag ) );
 	} else {
 		$frag = '';
@@ -1094,9 +1112,9 @@ function wp_remote_fopen( $uri ) {
  *
  * @since 2.0.0
  *
- * @global WP       $wp_locale
- * @global WP_Query $wp_query
- * @global WP_Query $wp_the_query
+ * @global WP       $wp           Current WordPress environment instance.
+ * @global WP_Query $wp_query     WordPress Query object.
+ * @global WP_Query $wp_the_query Copy of the WordPress Query object.
  *
  * @param string|array $query_vars Default WP_Query arguments.
  */
@@ -1240,7 +1258,9 @@ function status_header( $code, $description = '' ) {
 		$status_header = apply_filters( 'status_header', $status_header, $code, $description, $protocol );
 	}
 
-	@header( $status_header, true, $code );
+	if ( ! headers_sent() ) {
+		header( $status_header, true, $code );
+	}
 }
 
 /**
@@ -1292,26 +1312,18 @@ function wp_get_nocache_headers() {
  * @see wp_get_nocache_headers()
  */
 function nocache_headers() {
+	if ( headers_sent() ) {
+		return;
+	}
+
 	$headers = wp_get_nocache_headers();
 
 	unset( $headers['Last-Modified'] );
 
-	// In PHP 5.3+, make sure we are not sending a Last-Modified header.
-	if ( function_exists( 'header_remove' ) ) {
-		@header_remove( 'Last-Modified' );
-	} else {
-		// In PHP 5.2, send an empty Last-Modified header, but only as a
-		// last resort to override a header already sent. #WP23021
-		foreach ( headers_list() as $header ) {
-			if ( 0 === stripos( $header, 'Last-Modified' ) ) {
-				$headers['Last-Modified'] = '';
-				break;
-			}
-		}
-	}
+	header_remove( 'Last-Modified' );
 
 	foreach ( $headers as $name => $field_value ) {
-		@header( "{$name}: {$field_value}" );
+		header( "{$name}: {$field_value}" );
 	}
 }
 
@@ -1366,7 +1378,7 @@ function bool_from_yn( $yn ) {
  *
  * @since 2.1.0
  *
- * @global WP_Query $wp_query Used to tell if the use a comment feed.
+ * @global WP_Query $wp_query WordPress Query object.
  */
 function do_feed() {
 	global $wp_query;
@@ -1682,7 +1694,8 @@ function wp_referer_field( $echo = true ) {
  * @return string Original referer field.
  */
 function wp_original_referer_field( $echo = true, $jump_back_to = 'current' ) {
-	if ( ! $ref = wp_get_original_referer() ) {
+	$ref = wp_get_original_referer();
+	if ( ! $ref ) {
 		$ref = 'previous' == $jump_back_to ? wp_get_referer() : wp_unslash( $_SERVER['REQUEST_URI'] );
 	}
 	$orig_referer_field = '<input type="hidden" name="_wp_original_http_referer" value="' . esc_attr( $ref ) . '" />';
@@ -1794,7 +1807,8 @@ function wp_mkdir_p( $target ) {
 	}
 
 	// Get the permission bits.
-	if ( $stat = @stat( $target_parent ) ) {
+	$stat = @stat( $target_parent );
+	if ( $stat ) {
 		$dir_perms = $stat['mode'] & 0007777;
 	} else {
 		$dir_perms = 0777;
@@ -1809,7 +1823,7 @@ function wp_mkdir_p( $target ) {
 		if ( $dir_perms != ( $dir_perms & ~umask() ) ) {
 			$folder_parts = explode( '/', substr( $target, strlen( $target_parent ) + 1 ) );
 			for ( $i = 1, $c = count( $folder_parts ); $i <= $c; $i++ ) {
-				@chmod( $target_parent . '/' . implode( '/', array_slice( $folder_parts, 0, $i ) ), $dir_perms );
+				chmod( $target_parent . '/' . implode( '/', array_slice( $folder_parts, 0, $i ) ), $dir_perms );
 			}
 		}
 
@@ -2143,7 +2157,8 @@ function _wp_upload_dir( $time = null ) {
 		$dir = $upload_path;
 	}
 
-	if ( ! $url = get_option( 'upload_url_path' ) ) {
+	$url = get_option( 'upload_url_path' );
+	if ( ! $url ) {
 		if ( empty( $upload_path ) || ( 'wp-content/uploads' == $upload_path ) || ( $upload_path == $dir ) ) {
 			$url = WP_CONTENT_URL . '/uploads';
 		} else {
@@ -2400,12 +2415,12 @@ function wp_upload_bits( $name, $deprecated, $bits, $time = null ) {
 		return array( 'error' => $message );
 	}
 
-	$ifp = @ fopen( $new_file, 'wb' );
+	$ifp = @fopen( $new_file, 'wb' );
 	if ( ! $ifp ) {
 		return array( 'error' => sprintf( __( 'Could not write file %s' ), $new_file ) );
 	}
 
-	@fwrite( $ifp, $bits );
+	fwrite( $ifp, $bits );
 	fclose( $ifp );
 	clearstatcache();
 
@@ -2413,7 +2428,7 @@ function wp_upload_bits( $name, $deprecated, $bits, $time = null ) {
 	$stat  = @ stat( dirname( $new_file ) );
 	$perms = $stat['mode'] & 0007777;
 	$perms = $perms & 0000666;
-	@ chmod( $new_file, $perms );
+	chmod( $new_file, $perms );
 	clearstatcache();
 
 	// Compute the URL
@@ -2583,7 +2598,8 @@ function wp_check_filetype_and_ext( $file, $filename, $mimes = null ) {
 		if ( in_array( $real_mime, $nonspecific_types, true ) ) {
 			// File is a non-specific binary type. That's ok if it's a type that generally tends to be binary.
 			if ( ! in_array( substr( $type, 0, strcspn( $type, '/' ) ), array( 'application', 'video', 'audio' ) ) ) {
-				$type = $ext = false;
+				$type = false;
+				$ext  = false;
 			}
 		} elseif ( 0 === strpos( $real_mime, 'video/' ) || 0 === strpos( $real_mime, 'audio/' ) ) {
 			/*
@@ -2592,7 +2608,8 @@ function wp_check_filetype_and_ext( $file, $filename, $mimes = null ) {
 			 * and some media files are commonly named with the wrong extension (.mov instead of .mp4)
 			 */
 			if ( substr( $real_mime, 0, strcspn( $real_mime, '/' ) ) !== substr( $type, 0, strcspn( $type, '/' ) ) ) {
-				$type = $ext = false;
+				$type = false;
+				$ext  = false;
 			}
 		} elseif ( 'text/plain' === $real_mime ) {
 			// A few common file types are occasionally detected as text/plain; allow those.
@@ -2607,7 +2624,8 @@ function wp_check_filetype_and_ext( $file, $filename, $mimes = null ) {
 				)
 			)
 			) {
-				$type = $ext = false;
+				$type = false;
+				$ext  = false;
 			}
 		} elseif ( 'text/rtf' === $real_mime ) {
 			// Special casing for RTF files.
@@ -2620,7 +2638,8 @@ function wp_check_filetype_and_ext( $file, $filename, $mimes = null ) {
 				)
 			)
 			) {
-				$type = $ext = false;
+				$type = false;
+				$ext  = false;
 			}
 		} else {
 			if ( $type !== $real_mime ) {
@@ -2628,7 +2647,8 @@ function wp_check_filetype_and_ext( $file, $filename, $mimes = null ) {
 				 * Everything else including image/* and application/*:
 				 * If the real content type doesn't match the file extension, assume it's dangerous.
 				 */
-				$type = $ext = false;
+				$type = false;
+				$ext  = false;
 			}
 		}
 	}
@@ -2638,7 +2658,8 @@ function wp_check_filetype_and_ext( $file, $filename, $mimes = null ) {
 		$allowed = get_allowed_mime_types();
 
 		if ( ! in_array( $type, $allowed ) ) {
-			$type = $ext = false;
+			$type = false;
+			$ext  = false;
 		}
 	}
 
@@ -2680,7 +2701,7 @@ function wp_get_image_mime( $file ) {
 			$imagetype = exif_imagetype( $file );
 			$mime      = ( $imagetype ) ? image_type_to_mime_type( $imagetype ) : false;
 		} elseif ( function_exists( 'getimagesize' ) ) {
-			$imagesize = getimagesize( $file );
+			$imagesize = @getimagesize( $file );
 			$mime      = ( isset( $imagesize['mime'] ) ) ? $imagesize['mime'] : false;
 		} else {
 			$mime = false;
@@ -2945,7 +2966,7 @@ function wp_nonce_ays( $action ) {
  *              an integer to be used as the response code.
  * @since 5.1.0 The `$link_url`, `$link_text`, and `$exit` arguments were added.
  *
- * @global WP_Query $wp_query Global WP_Query instance.
+ * @global WP_Query $wp_query WordPress Query object.
  *
  * @param string|WP_Error  $message Optional. Error message. If this is a WP_Error object,
  *                                  and not an Ajax or XML-RPC request, the error's messages are used.
@@ -3059,13 +3080,13 @@ function wp_die( $message = '', $title = '', $args = array() ) {
  * @param string|array    $args    Optional. Arguments to control behavior. Default empty array.
  */
 function _default_wp_die_handler( $message, $title = '', $args = array() ) {
-	list( $message, $title, $r ) = _wp_die_process_input( $message, $title, $args );
+	list( $message, $title, $parsed_args ) = _wp_die_process_input( $message, $title, $args );
 
 	if ( is_string( $message ) ) {
-		if ( ! empty( $r['additional_errors'] ) ) {
+		if ( ! empty( $parsed_args['additional_errors'] ) ) {
 			$message = array_merge(
 				array( $message ),
-				wp_list_pluck( $r['additional_errors'], 'message' )
+				wp_list_pluck( $parsed_args['additional_errors'], 'message' )
 			);
 			$message = "<ul>\n\t\t<li>" . join( "</li>\n\t\t<li>", $message ) . "</li>\n\t</ul>";
 		} else {
@@ -3075,16 +3096,16 @@ function _default_wp_die_handler( $message, $title = '', $args = array() ) {
 
 	$have_gettext = function_exists( '__' );
 
-	if ( ! empty( $r['link_url'] ) && ! empty( $r['link_text'] ) ) {
-		$link_url = $r['link_url'];
+	if ( ! empty( $parsed_args['link_url'] ) && ! empty( $parsed_args['link_text'] ) ) {
+		$link_url = $parsed_args['link_url'];
 		if ( function_exists( 'esc_url' ) ) {
 			$link_url = esc_url( $link_url );
 		}
-		$link_text = $r['link_text'];
+		$link_text = $parsed_args['link_text'];
 		$message  .= "\n<p><a href='{$link_url}'>{$link_text}</a></p>";
 	}
 
-	if ( isset( $r['back_link'] ) && $r['back_link'] ) {
+	if ( isset( $parsed_args['back_link'] ) && $parsed_args['back_link'] ) {
 		$back_text = $have_gettext ? __( '&laquo; Back' ) : '&laquo; Back';
 		$message  .= "\n<p><a href='javascript:history.back()'>$back_text</a></p>";
 	}
@@ -3092,11 +3113,11 @@ function _default_wp_die_handler( $message, $title = '', $args = array() ) {
 	if ( ! did_action( 'admin_head' ) ) :
 		if ( ! headers_sent() ) {
 			header( 'Content-Type: text/html; charset=utf-8' );
-			status_header( $r['response'] );
+			status_header( $parsed_args['response'] );
 			nocache_headers();
 		}
 
-		$text_direction = $r['text_direction'];
+		$text_direction = $parsed_args['text_direction'];
 		if ( function_exists( 'language_attributes' ) && function_exists( 'is_rtl' ) ) {
 			$dir_attr = get_language_attributes();
 		} else {
@@ -3176,7 +3197,7 @@ function _default_wp_die_handler( $message, $title = '', $args = array() ) {
 			display: inline-block;
 			text-decoration: none;
 			font-size: 13px;
-			line-height: 26px;
+			line-height: 2;
 			height: 28px;
 			margin: 0;
 			padding: 0 10px 1px;
@@ -3191,12 +3212,12 @@ function _default_wp_die_handler( $message, $title = '', $args = array() ) {
 
 			-webkit-box-shadow: 0 1px 0 #ccc;
 			box-shadow: 0 1px 0 #ccc;
-			 vertical-align: top;
+			vertical-align: top;
 		}
 
 		.button.button-large {
 			height: 30px;
-			line-height: 28px;
+			line-height: 2.15384615;
 			padding: 0 12px 2px;
 		}
 
@@ -3217,11 +3238,11 @@ function _default_wp_die_handler( $message, $title = '', $args = array() ) {
 		.button:active {
 			background: #eee;
 			border-color: #999;
-			 -webkit-box-shadow: inset 0 2px 5px -3px rgba(0, 0, 0, 0.5);
-			 box-shadow: inset 0 2px 5px -3px rgba(0, 0, 0, 0.5);
-			 -webkit-transform: translateY(1px);
-			 -ms-transform: translateY(1px);
-			 transform: translateY(1px);
+			-webkit-box-shadow: inset 0 2px 5px -3px rgba(0, 0, 0, 0.5);
+			box-shadow: inset 0 2px 5px -3px rgba(0, 0, 0, 0.5);
+			-webkit-transform: translateY(1px);
+			-ms-transform: translateY(1px);
+			transform: translateY(1px);
 		}
 
 		<?php
@@ -3237,7 +3258,7 @@ function _default_wp_die_handler( $message, $title = '', $args = array() ) {
 </body>
 </html>
 	<?php
-	if ( $r['exit'] ) {
+	if ( $parsed_args['exit'] ) {
 		die();
 	}
 }
@@ -3261,12 +3282,12 @@ function _ajax_wp_die_handler( $message, $title = '', $args = array() ) {
 		array( 'response' => 200 )
 	);
 
-	list( $message, $title, $r ) = _wp_die_process_input( $message, $title, $args );
+	list( $message, $title, $parsed_args ) = _wp_die_process_input( $message, $title, $args );
 
 	if ( ! headers_sent() ) {
 		// This is intentional. For backward-compatibility, support passing null here.
 		if ( null !== $args['response'] ) {
-			status_header( $r['response'] );
+			status_header( $parsed_args['response'] );
 		}
 		nocache_headers();
 	}
@@ -3277,7 +3298,7 @@ function _ajax_wp_die_handler( $message, $title = '', $args = array() ) {
 		$message = '0';
 	}
 
-	if ( $r['exit'] ) {
+	if ( $parsed_args['exit'] ) {
 		die( $message );
 	}
 
@@ -3297,27 +3318,27 @@ function _ajax_wp_die_handler( $message, $title = '', $args = array() ) {
  * @param string|array $args    Optional. Arguments to control behavior. Default empty array.
  */
 function _json_wp_die_handler( $message, $title = '', $args = array() ) {
-	list( $message, $title, $r ) = _wp_die_process_input( $message, $title, $args );
+	list( $message, $title, $parsed_args ) = _wp_die_process_input( $message, $title, $args );
 
 	$data = array(
-		'code'              => $r['code'],
+		'code'              => $parsed_args['code'],
 		'message'           => $message,
 		'data'              => array(
-			'status' => $r['response'],
+			'status' => $parsed_args['response'],
 		),
-		'additional_errors' => $r['additional_errors'],
+		'additional_errors' => $parsed_args['additional_errors'],
 	);
 
 	if ( ! headers_sent() ) {
 		header( 'Content-Type: application/json; charset=utf-8' );
-		if ( null !== $r['response'] ) {
-			status_header( $r['response'] );
+		if ( null !== $parsed_args['response'] ) {
+			status_header( $parsed_args['response'] );
 		}
 		nocache_headers();
 	}
 
 	echo wp_json_encode( $data );
-	if ( $r['exit'] ) {
+	if ( $parsed_args['exit'] ) {
 		die();
 	}
 }
@@ -3335,23 +3356,23 @@ function _json_wp_die_handler( $message, $title = '', $args = array() ) {
  * @param string|array $args    Optional. Arguments to control behavior. Default empty array.
  */
 function _jsonp_wp_die_handler( $message, $title = '', $args = array() ) {
-	list( $message, $title, $r ) = _wp_die_process_input( $message, $title, $args );
+	list( $message, $title, $parsed_args ) = _wp_die_process_input( $message, $title, $args );
 
 	$data = array(
-		'code'              => $r['code'],
+		'code'              => $parsed_args['code'],
 		'message'           => $message,
 		'data'              => array(
-			'status' => $r['response'],
+			'status' => $parsed_args['response'],
 		),
-		'additional_errors' => $r['additional_errors'],
+		'additional_errors' => $parsed_args['additional_errors'],
 	);
 
 	if ( ! headers_sent() ) {
 		header( 'Content-Type: application/javascript; charset=utf-8' );
 		header( 'X-Content-Type-Options: nosniff' );
 		header( 'X-Robots-Tag: noindex' );
-		if ( null !== $r['response'] ) {
-			status_header( $r['response'] );
+		if ( null !== $parsed_args['response'] ) {
+			status_header( $parsed_args['response'] );
 		}
 		nocache_headers();
 	}
@@ -3359,7 +3380,7 @@ function _jsonp_wp_die_handler( $message, $title = '', $args = array() ) {
 	$result         = wp_json_encode( $data );
 	$jsonp_callback = $_GET['_jsonp'];
 	echo '/**/' . $jsonp_callback . '(' . $result . ')';
-	if ( $r['exit'] ) {
+	if ( $parsed_args['exit'] ) {
 		die();
 	}
 }
@@ -3381,17 +3402,17 @@ function _jsonp_wp_die_handler( $message, $title = '', $args = array() ) {
 function _xmlrpc_wp_die_handler( $message, $title = '', $args = array() ) {
 	global $wp_xmlrpc_server;
 
-	list( $message, $title, $r ) = _wp_die_process_input( $message, $title, $args );
+	list( $message, $title, $parsed_args ) = _wp_die_process_input( $message, $title, $args );
 
 	if ( ! headers_sent() ) {
 		nocache_headers();
 	}
 
 	if ( $wp_xmlrpc_server ) {
-		$error = new IXR_Error( $r['response'], $message );
+		$error = new IXR_Error( $parsed_args['response'], $message );
 		$wp_xmlrpc_server->output( $error->getXml() );
 	}
-	if ( $r['exit'] ) {
+	if ( $parsed_args['exit'] ) {
 		die();
 	}
 }
@@ -3409,18 +3430,18 @@ function _xmlrpc_wp_die_handler( $message, $title = '', $args = array() ) {
  * @param string|array $args    Optional. Arguments to control behavior. Default empty array.
  */
 function _xml_wp_die_handler( $message, $title = '', $args = array() ) {
-	list( $message, $title, $r ) = _wp_die_process_input( $message, $title, $args );
+	list( $message, $title, $parsed_args ) = _wp_die_process_input( $message, $title, $args );
 
 	$message = htmlspecialchars( $message );
 	$title   = htmlspecialchars( $title );
 
 	$xml = <<<EOD
 <error>
-    <code>{$r['code']}</code>
+    <code>{$parsed_args['code']}</code>
     <title><![CDATA[{$title}]]></title>
     <message><![CDATA[{$message}]]></message>
     <data>
-        <status>{$r['response']}</status>
+        <status>{$parsed_args['response']}</status>
     </data>
 </error>
 
@@ -3428,14 +3449,14 @@ EOD;
 
 	if ( ! headers_sent() ) {
 		header( 'Content-Type: text/xml; charset=utf-8' );
-		if ( null !== $r['response'] ) {
-			status_header( $r['response'] );
+		if ( null !== $parsed_args['response'] ) {
+			status_header( $parsed_args['response'] );
 		}
 		nocache_headers();
 	}
 
 	echo $xml;
-	if ( $r['exit'] ) {
+	if ( $parsed_args['exit'] ) {
 		die();
 	}
 }
@@ -3454,9 +3475,9 @@ EOD;
  * @param string|array $args    Optional. Arguments to control behavior. Default empty array.
  */
 function _scalar_wp_die_handler( $message = '', $title = '', $args = array() ) {
-	list( $message, $title, $r ) = _wp_die_process_input( $message, $title, $args );
+	list( $message, $title, $parsed_args ) = _wp_die_process_input( $message, $title, $args );
 
-	if ( $r['exit'] ) {
+	if ( $parsed_args['exit'] ) {
 		if ( is_scalar( $message ) ) {
 			die( (string) $message );
 		}
@@ -3574,6 +3595,7 @@ function wp_json_encode( $data, $options = 0, $depth = 512 ) {
 	// Prepare the data for JSON serialization.
 	$args[0] = _wp_json_prepare_data( $data );
 
+	// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- json_encode() errors are handled after this call
 	$json = @call_user_func_array( 'json_encode', $args );
 
 	// If json_encode() was successful, no need to do more sanity checking.
@@ -3748,10 +3770,13 @@ function _wp_json_prepare_data( $data ) {
  * @param int   $status_code The HTTP status code to output.
  */
 function wp_send_json( $response, $status_code = null ) {
-	@header( 'Content-Type: application/json; charset=' . get_option( 'blog_charset' ) );
-	if ( null !== $status_code ) {
-		status_header( $status_code );
+	if ( ! headers_sent() ) {
+		header( 'Content-Type: application/json; charset=' . get_option( 'blog_charset' ) );
+		if ( null !== $status_code ) {
+			status_header( $status_code );
+		}
 	}
+
 	echo wp_json_encode( $response );
 
 	if ( wp_doing_ajax() ) {
@@ -4082,17 +4107,17 @@ function smilies_init() {
  */
 function wp_parse_args( $args, $defaults = '' ) {
 	if ( is_object( $args ) ) {
-		$r = get_object_vars( $args );
+		$parsed_args = get_object_vars( $args );
 	} elseif ( is_array( $args ) ) {
-		$r =& $args;
+		$parsed_args =& $args;
 	} else {
-		wp_parse_str( $args, $r );
+		wp_parse_str( $args, $parsed_args );
 	}
 
 	if ( is_array( $defaults ) ) {
-		return array_merge( $defaults, $r );
+		return array_merge( $defaults, $parsed_args );
 	}
-	return $r;
+	return $parsed_args;
 }
 
 /**
@@ -4764,10 +4789,10 @@ function _doing_it_wrong( $function, $message, $version ) {
 				/* translators: %s: version number */
 				$version = sprintf( __( '(This message was added in version %s.)' ), $version );
 			}
-			/* translators: %s: Codex URL */
+			/* translators: %s: Documentation URL */
 			$message .= ' ' . sprintf(
 				__( 'Please see <a href="%s">Debugging in WordPress</a> for more information.' ),
-				__( 'https://codex.wordpress.org/Debugging_in_WordPress' )
+				__( 'https://wordpress.org/support/article/debugging-in-wordpress/' )
 			);
 			/* translators: Developer debugging message. 1: PHP function name, 2: Explanatory message, 3: Version information message */
 			trigger_error( sprintf( __( '%1$s was called <strong>incorrectly</strong>. %2$s %3$s' ), $function, $message, $version ) );
@@ -4779,7 +4804,7 @@ function _doing_it_wrong( $function, $message, $version ) {
 			}
 			$message .= sprintf(
 				' Please see <a href="%s">Debugging in WordPress</a> for more information.',
-				'https://codex.wordpress.org/Debugging_in_WordPress'
+				'https://wordpress.org/support/article/debugging-in-wordpress/'
 			);
 			trigger_error( sprintf( '%1$s was called <strong>incorrectly</strong>. %2$s %3$s', $function, $message, $version ) );
 		}
@@ -5221,7 +5246,8 @@ function is_site_meta_supported() {
  * @return float|false Timezone GMT offset, false otherwise.
  */
 function wp_timezone_override_offset() {
-	if ( ! $timezone_string = get_option( 'timezone_string' ) ) {
+	$timezone_string = get_option( 'timezone_string' );
+	if ( ! $timezone_string ) {
 		return false;
 	}
 
@@ -5586,7 +5612,8 @@ function get_file_data( $file, $default_headers, $context = '' ) {
 	 *
 	 * @param array $extra_context_headers Empty array by default.
 	 */
-	if ( $context && $extra_headers = apply_filters( "extra_{$context}_headers", array() ) ) {
+	$extra_headers = $context ? apply_filters( "extra_{$context}_headers", array() ) : array();
+	if ( $extra_headers ) {
 		$extra_headers = array_combine( $extra_headers, $extra_headers ); // keys equal values
 		$all_headers   = array_merge( $extra_headers, (array) $default_headers );
 	} else {
@@ -5615,7 +5642,7 @@ function get_file_data( $file, $default_headers, $context = '' ) {
  *
  * @return true True.
  */
-function __return_true() {
+function __return_true() { // phpcs:ignore WordPress.NamingConventions.ValidFunctionName.FunctionDoubleUnderscore
 	return true;
 }
 
@@ -5630,7 +5657,7 @@ function __return_true() {
  *
  * @return false False.
  */
-function __return_false() {
+function __return_false() { // phpcs:ignore WordPress.NamingConventions.ValidFunctionName.FunctionDoubleUnderscore
 	return false;
 }
 
@@ -5643,7 +5670,7 @@ function __return_false() {
  *
  * @return int 0.
  */
-function __return_zero() {
+function __return_zero() { // phpcs:ignore WordPress.NamingConventions.ValidFunctionName.FunctionDoubleUnderscore
 	return 0;
 }
 
@@ -5656,7 +5683,7 @@ function __return_zero() {
  *
  * @return array Empty array.
  */
-function __return_empty_array() {
+function __return_empty_array() { // phpcs:ignore WordPress.NamingConventions.ValidFunctionName.FunctionDoubleUnderscore
 	return array();
 }
 
@@ -5669,7 +5696,7 @@ function __return_empty_array() {
  *
  * @return null Null value.
  */
-function __return_null() {
+function __return_null() { // phpcs:ignore WordPress.NamingConventions.ValidFunctionName.FunctionDoubleUnderscore
 	return null;
 }
 
@@ -5684,7 +5711,7 @@ function __return_null() {
  *
  * @return string Empty string.
  */
-function __return_empty_string() {
+function __return_empty_string() { // phpcs:ignore WordPress.NamingConventions.ValidFunctionName.FunctionDoubleUnderscore
 	return '';
 }
 
@@ -5697,7 +5724,7 @@ function __return_empty_string() {
  * @see https://src.chromium.org/viewvc/chrome?view=rev&revision=6985
  */
 function send_nosniff_header() {
-	@header( 'X-Content-Type-Options: nosniff' );
+	header( 'X-Content-Type-Options: nosniff' );
 }
 
 /**
@@ -5710,7 +5737,8 @@ function send_nosniff_header() {
  * @return string SQL clause.
  */
 function _wp_mysql_week( $column ) {
-	switch ( $start_of_week = (int) get_option( 'start_of_week' ) ) {
+	$start_of_week = (int) get_option( 'start_of_week' );
+	switch ( $start_of_week ) {
 		case 1:
 			return "WEEK( $column, 1 )";
 		case 2:
@@ -5741,7 +5769,8 @@ function _wp_mysql_week( $column ) {
 function wp_find_hierarchy_loop( $callback, $start, $start_parent, $callback_args = array() ) {
 	$override = is_null( $start_parent ) ? array() : array( $start => $start_parent );
 
-	if ( ! $arbitrary_loop_member = wp_find_hierarchy_loop_tortoise_hare( $callback, $start, $override, $callback_args ) ) {
+	$arbitrary_loop_member = wp_find_hierarchy_loop_tortoise_hare( $callback, $start, $override, $callback_args );
+	if ( ! $arbitrary_loop_member ) {
 		return array();
 	}
 
@@ -5769,8 +5798,10 @@ function wp_find_hierarchy_loop( $callback, $start, $start_parent, $callback_arg
  *               $_return_loop
  */
 function wp_find_hierarchy_loop_tortoise_hare( $callback, $start, $override = array(), $callback_args = array(), $_return_loop = false ) {
-	$tortoise = $hare = $evanescent_hare = $start;
-	$return   = array();
+	$tortoise        = $start;
+	$hare            = $start;
+	$evanescent_hare = $start;
+	$return          = array();
 
 	// Set evanescent_hare to one past hare
 	// Increment hare two steps
@@ -5782,7 +5813,9 @@ function wp_find_hierarchy_loop_tortoise_hare( $callback, $start, $override = ar
 		( $hare = isset( $override[ $evanescent_hare ] ) ? $override[ $evanescent_hare ] : call_user_func_array( $callback, array_merge( array( $evanescent_hare ), $callback_args ) ) )
 	) {
 		if ( $_return_loop ) {
-			$return[ $tortoise ] = $return[ $evanescent_hare ] = $return[ $hare ] = true;
+			$return[ $tortoise ]        = true;
+			$return[ $evanescent_hare ] = true;
+			$return[ $hare ]            = true;
 		}
 
 		// tortoise got lapped - must be a loop
@@ -5805,7 +5838,7 @@ function wp_find_hierarchy_loop_tortoise_hare( $callback, $start, $override = ar
  * @see https://developer.mozilla.org/en/the_x-frame-options_response_header
  */
 function send_frame_options_header() {
-	@header( 'X-Frame-Options: SAMEORIGIN' );
+	header( 'X-Frame-Options: SAMEORIGIN' );
 }
 
 /**
@@ -6282,11 +6315,19 @@ function wp_delete_file( $file ) {
  */
 function wp_delete_file_from_directory( $file, $directory ) {
 	if ( wp_is_stream( $file ) ) {
-		$real_file      = wp_normalize_path( $file );
-		$real_directory = wp_normalize_path( $directory );
+		$real_file      = $file;
+		$real_directory = $directory;
 	} else {
 		$real_file      = realpath( wp_normalize_path( $file ) );
 		$real_directory = realpath( wp_normalize_path( $directory ) );
+	}
+
+	if ( false !== $real_file ) {
+		$real_file = wp_normalize_path( $real_file );
+	}
+
+	if ( false !== $real_directory ) {
+		$real_directory = wp_normalize_path( $real_directory );
 	}
 
 	if ( false === $real_file || false === $real_directory || strpos( $real_file, trailingslashit( $real_directory ) ) !== 0 ) {
@@ -6305,7 +6346,7 @@ function wp_delete_file_from_directory( $file, $directory ) {
  *
  * @since 4.3.0
  *
- * @global WP_Post $post
+ * @global WP_Post $post Global post object.
  */
 function wp_post_preview_js() {
 	global $post;
@@ -6371,7 +6412,7 @@ function wp_raise_memory_limit( $context = 'admin' ) {
 		return false;
 	}
 
-	$current_limit     = @ini_get( 'memory_limit' );
+	$current_limit     = ini_get( 'memory_limit' );
 	$current_limit_int = wp_convert_hr_to_bytes( $current_limit );
 
 	if ( -1 === $current_limit_int ) {
@@ -6443,13 +6484,13 @@ function wp_raise_memory_limit( $context = 'admin' ) {
 	$filtered_limit_int = wp_convert_hr_to_bytes( $filtered_limit );
 
 	if ( -1 === $filtered_limit_int || ( $filtered_limit_int > $wp_max_limit_int && $filtered_limit_int > $current_limit_int ) ) {
-		if ( false !== @ini_set( 'memory_limit', $filtered_limit ) ) {
+		if ( false !== ini_set( 'memory_limit', $filtered_limit ) ) {
 			return $filtered_limit;
 		} else {
 			return false;
 		}
 	} elseif ( -1 === $wp_max_limit_int || $wp_max_limit_int > $current_limit_int ) {
-		if ( false !== @ini_set( 'memory_limit', $wp_max_limit ) ) {
+		if ( false !== ini_set( 'memory_limit', $wp_max_limit ) ) {
 			return $wp_max_limit;
 		} else {
 			return false;
@@ -7109,7 +7150,8 @@ function recurse_dirsize( $directory, $exclude = null, $max_execution_time = nul
 		}
 	}
 
-	if ( $handle = opendir( $directory ) ) {
+	$handle = opendir( $directory );
+	if ( $handle ) {
 		while ( ( $file = readdir( $handle ) ) !== false ) {
 			$path = $directory . '/' . $file;
 			if ( $file != '.' && $file != '..' ) {
@@ -7135,13 +7177,13 @@ function recurse_dirsize( $directory, $exclude = null, $max_execution_time = nul
 }
 
 /**
-* Checks compatibility with the current WordPress version.
-*
-* @since 5.2.0
-*
-* @param string $required Minimum required WordPress version.
-* @return bool True if required version is compatible or empty, false if not.
-*/
+ * Checks compatibility with the current WordPress version.
+ *
+ * @since 5.2.0
+ *
+ * @param string $required Minimum required WordPress version.
+ * @return bool True if required version is compatible or empty, false if not.
+ */
 function is_wp_version_compatible( $required ) {
 	return empty( $required ) || version_compare( get_bloginfo( 'version' ), $required, '>=' );
 }

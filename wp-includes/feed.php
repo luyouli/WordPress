@@ -407,7 +407,7 @@ function get_the_category_rss( $type = null ) {
 		} elseif ( 'atom' == $type ) {
 			$the_list .= sprintf( '<category scheme="%1$s" term="%2$s" />', esc_attr( get_bloginfo_rss( 'url' ) ), esc_attr( $cat_name ) );
 		} else {
-			$the_list .= "\t\t<category><![CDATA[" . @html_entity_decode( $cat_name, ENT_COMPAT, get_option( 'blog_charset' ) ) . "]]></category>\n";
+			$the_list .= "\t\t<category><![CDATA[" . html_entity_decode( $cat_name, ENT_COMPAT, get_option( 'blog_charset' ) ) . "]]></category>\n";
 		}
 	}
 
@@ -587,7 +587,7 @@ function prep_atom_text_construct( $data ) {
 function atom_site_icon() {
 	$url = get_site_icon_url( 32 );
 	if ( $url ) {
-		echo "<icon>$url</icon>\n";
+		echo '<icon>' . convert_chars( $url ) . "</icon>\n";
 	}
 }
 
@@ -637,13 +637,13 @@ function self_link() {
 	echo esc_url( apply_filters( 'self_link', set_url_scheme( 'http://' . $host['host'] . wp_unslash( $_SERVER['REQUEST_URI'] ) ) ) );
 }
 
-/*
+/**
  * Get the timestamp of the most recently modified post from WP_Query.
  *
  * If viewing a comment feed, the timestamp of the most recently modified
  * comment will be returned.
  *
- * @global WP_Query  $wp_query The global WP_Query object.
+ * @global WP_Query $wp_query WordPress Query object.
  *
  * @since 5.2.0
  *
@@ -672,14 +672,7 @@ function get_feed_build_date( $format ) {
 	}
 
 	// Determine the maximum modified time.
-	$max_modified_time = max(
-		array_map(
-			function ( $time ) use ( $format ) {
-				return mysql2date( $format, $time, false );
-			},
-			$modified_times
-		)
-	);
+	$max_modified_time = mysql2date( $format, max( $modified_times ), false );
 
 	/**
 	 * Filters the date the last post or comment in the query was modified.

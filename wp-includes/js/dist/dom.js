@@ -82,7 +82,7 @@ this["wp"] = this["wp"] || {}; this["wp"]["dom"] =
 /******/
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 379);
+/******/ 	return __webpack_require__(__webpack_require__.s = 365);
 /******/ })
 /************************************************************************/
 /******/ ({
@@ -138,7 +138,7 @@ function _iterableToArray(iter) {
 
 /***/ }),
 
-/***/ 379:
+/***/ 365:
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -508,14 +508,17 @@ function isEdge(container, isReverse, onlyVertical) {
 
   if (onlyVertical) {
     return true;
-  } // To calculate the horizontal position, we insert a test range and see if
+  } // In the case of RTL scripts, the horizontal edge is at the opposite side.
+
+
+  var direction = computedStyle.direction;
+  var isReverseDir = direction === 'rtl' ? !isReverse : isReverse; // To calculate the horizontal position, we insert a test range and see if
   // this test range has the same horizontal position. This method proves to
   // be better than a DOM-based calculation, because it ignores empty text
   // nodes and a trailing line break element. In other words, we need to check
   // visual positioning, not DOM positioning.
 
-
-  var x = isReverse ? containerRect.left + 1 : containerRect.right - 1;
+  var x = isReverseDir ? containerRect.left + 1 : containerRect.right - 1;
   var y = isReverse ? containerRect.top + buffer : containerRect.bottom - buffer;
   var testRange = hiddenCaretRangeFromPoint(document, x, y, container);
 
@@ -523,7 +526,7 @@ function isEdge(container, isReverse, onlyVertical) {
     return false;
   }
 
-  var side = isReverse ? 'left' : 'right';
+  var side = isReverseDir ? 'left' : 'right';
   var testRect = getRectangleFromRange(testRange);
   return Math.round(testRect[side]) === Math.round(rangeRect[side]);
 }

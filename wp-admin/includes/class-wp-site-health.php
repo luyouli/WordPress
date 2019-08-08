@@ -130,7 +130,7 @@ class WP_Site_Health {
 				$mysql_server_type = mysql_get_server_info( $wpdb->dbh );
 			}
 
-			$this->mysql_server_version = $wpdb->get_var( 'SELECT VERSION()' );
+			$this->mysql_server_version = $wpdb->db_version();
 		}
 
 		$this->health_check_mysql_rec_version = '5.6';
@@ -277,7 +277,7 @@ class WP_Site_Health {
 	 */
 	public function get_test_plugin_version() {
 		$result = array(
-			'label'       => __( 'Your plugins are up to date' ),
+			'label'       => __( 'Your plugins are all up to date' ),
 			'status'      => 'good',
 			'badge'       => array(
 				'label' => __( 'Security' ),
@@ -340,7 +340,7 @@ class WP_Site_Health {
 
 			$result['actions'] .= sprintf(
 				'<p><a href="%s">%s</a></p>',
-				esc_url( admin_url( 'plugins.php?plugin_status=upgrade' ) ),
+				esc_url( network_admin_url( 'plugins.php?plugin_status=upgrade' ) ),
 				__( 'Update your plugins' )
 			);
 		} else {
@@ -355,7 +355,7 @@ class WP_Site_Health {
 					sprintf(
 						/* translators: %d: The number of active plugins. */
 						_n(
-							'Your site has %d active plugin, and they are all up to date.',
+							'Your site has %d active plugin, and it is up to date.',
 							'Your site has %d active plugins, and they are all up to date.',
 							$plugins_active
 						),
@@ -409,7 +409,7 @@ class WP_Site_Health {
 	 */
 	public function get_test_theme_version() {
 		$result = array(
-			'label'       => __( 'Your themes are up to date' ),
+			'label'       => __( 'Your themes are all up to date' ),
 			'status'      => 'good',
 			'badge'       => array(
 				'label' => __( 'Security' ),
@@ -445,16 +445,26 @@ class WP_Site_Health {
 		$all_themes   = wp_get_themes();
 		$active_theme = wp_get_theme();
 
+		// If WP_DEFAULT_THEME doesn't exist, fall back to the latest core default theme.
+		$default_theme = wp_get_theme( WP_DEFAULT_THEME );
+		if ( ! $default_theme->exists() ) {
+			$default_theme = WP_Theme::get_core_default_theme();
+		}
+
+		if ( $default_theme ) {
+			$has_default_theme = true;
+
+			if (
+				$active_theme->get_stylesheet() === $default_theme->get_stylesheet()
+			||
+				is_child_theme() && $active_theme->get_template() === $default_theme->get_template()
+			) {
+				$using_default_theme = true;
+			}
+		}
+
 		foreach ( $all_themes as $theme_slug => $theme ) {
 			$themes_total++;
-
-			if ( WP_DEFAULT_THEME === $theme_slug ) {
-				$has_default_theme = true;
-
-				if ( get_stylesheet() === $theme_slug ) {
-					$using_default_theme = true;
-				}
-			}
 
 			if ( array_key_exists( $theme_slug, $theme_updates ) ) {
 				$themes_need_updates++;
@@ -462,12 +472,8 @@ class WP_Site_Health {
 		}
 
 		// If this is a child theme, increase the allowed theme count by one, to account for the parent.
-		if ( $active_theme->parent() ) {
+		if ( is_child_theme() ) {
 			$allowed_theme_count++;
-
-			if ( $active_theme->get_template() === WP_DEFAULT_THEME ) {
-				$using_default_theme = true;
-			}
 		}
 
 		// If there's a default theme installed and not in use, we count that as allowed as well.
@@ -511,7 +517,7 @@ class WP_Site_Health {
 					sprintf(
 						/* translators: %d: The number of themes. */
 						_n(
-							'Your site has %d installed theme, and they are all up to date.',
+							'Your site has %d installed theme, and it is up to date.',
 							'Your site has %d installed themes, and they are all up to date.',
 							$themes_total
 						),
@@ -524,7 +530,7 @@ class WP_Site_Health {
 		if ( $has_unused_themes && $show_unused_themes && ! is_multisite() ) {
 
 			// This is a child theme, so we want to be a bit more explicit in our messages.
-			if ( $active_theme->parent() ) {
+			if ( is_child_theme() ) {
 				// Recommend removing inactive themes, except a default theme, your current one, and the parent theme.
 				$result['status'] = 'recommended';
 
@@ -564,7 +570,7 @@ class WP_Site_Health {
 						sprintf(
 							/* translators: 1: The default theme for WordPress. 2: The currently active theme. 3: The active theme's parent theme. */
 							__( 'To enhance your site&#8217;s security, we recommend you remove any themes you&#8217;re not using. You should keep %1$s, the default WordPress theme, %2$s, your current theme, and %3$s, its parent theme.' ),
-							WP_DEFAULT_THEME,
+							$default_theme ? $default_theme->name : WP_DEFAULT_THEME,
 							$active_theme->name,
 							$active_theme->parent()->name
 						)
@@ -602,7 +608,7 @@ class WP_Site_Health {
 								$themes_inactive
 							),
 							$themes_inactive,
-							WP_DEFAULT_THEME,
+							$default_theme ? $default_theme->name : WP_DEFAULT_THEME,
 							$active_theme->name
 						),
 						__( 'We recommend removing any unused themes to enhance your site&#8217;s security.' )
@@ -611,7 +617,7 @@ class WP_Site_Health {
 			}
 		}
 
-		// If not default Twenty* theme exists.
+		// If no default Twenty* theme exists.
 		if ( ! $has_default_theme ) {
 			$result['status'] = 'recommended';
 
@@ -740,13 +746,13 @@ class WP_Site_Health {
 				'<p>%s</p><p>%s</p>',
 				__( 'PHP modules perform most of the tasks on the server that make your site run. Any changes to these must be made by your server administrator.' ),
 				sprintf(
-					/* translators: %s: Link to the hosting group page about recommended PHP modules. */
-					__( 'The WordPress Hosting Team maintains a list of those modules, both recommended and required, in %s.' ),
+					/* translators: 1: Link to the hosting group page about recommended PHP modules. 2: Additional link attributes. 3: Accessibility text. */
+					__( 'The WordPress Hosting Team maintains a list of those modules, both recommended and required, in <a href="%1$s" %2$s>the team handbook%3$s</a>.' ),
+					/* translators: Localized team handbook, if one exists. */
+					esc_url( __( 'https://make.wordpress.org/hosting/handbook/handbook/server-environment/#php-extensions' ) ),
+					'target="_blank" rel="noopener noreferrer"',
 					sprintf(
-						'<a href="%1$s" target="_blank" rel="noopener noreferrer">%2$s <span class="screen-reader-text">%3$s</span><span aria-hidden="true" class="dashicons dashicons-external"></span></a>',
-						/* translators: Localized team handbook, if one exists. */
-						esc_url( __( 'https://make.wordpress.org/hosting/handbook/handbook/server-environment/#php-extensions' ) ),
-						__( 'the team handbook' ),
+						' <span class="screen-reader-text">%s</span><span aria-hidden="true" class="dashicons dashicons-external"></span>',
 						/* translators: accessibility text */
 						__( '(opens in a new tab)' )
 					)
@@ -889,7 +895,7 @@ class WP_Site_Health {
 					$result['status'] = 'recommended';
 				}
 
-				$failures[ $library ] = "<span class='$class'><span class='screen-reader-text'>$screen_reader</span></span> $message";
+				$failures[ $library ] = "<span class='dashicons $class'><span class='screen-reader-text'>$screen_reader</span></span> $message";
 			}
 		}
 
@@ -946,7 +952,7 @@ class WP_Site_Health {
 				'<p><a href="%s" target="_blank" rel="noopener noreferrer">%s <span class="screen-reader-text">%s</span><span aria-hidden="true" class="dashicons dashicons-external"></span></a></p>',
 				/* translators: Localized version of WordPress requirements if one exists. */
 				esc_url( __( 'https://wordpress.org/about/requirements/' ) ),
-				__( 'Read more about what WordPress requires to run.' ),
+				__( 'Learn more about what WordPress requires to run.' ),
 				/* translators: accessibility text */
 				__( '(opens in a new tab)' )
 			),
@@ -1217,7 +1223,7 @@ class WP_Site_Health {
 				'<p><a href="%s" target="_blank" rel="noopener noreferrer">%s <span class="screen-reader-text">%s</span><span aria-hidden="true" class="dashicons dashicons-external"></span></a></p>',
 				/* translators: Documentation explaining debugging in WordPress. */
 				esc_url( __( 'https://wordpress.org/support/article/debugging-in-wordpress/' ) ),
-				__( 'Read about debugging in WordPress.' ),
+				__( 'Learn more about debugging in WordPress.' ),
 				/* translators: accessibility text */
 				__( '(opens in a new tab)' )
 			),
@@ -1286,7 +1292,7 @@ class WP_Site_Health {
 				'<p><a href="%s" target="_blank" rel="noopener noreferrer">%s <span class="screen-reader-text">%s</span><span aria-hidden="true" class="dashicons dashicons-external"></span></a></p>',
 				/* translators: Documentation explaining HTTPS and why it should be used. */
 				esc_url( __( 'https://wordpress.org/support/article/why-should-i-use-https/' ) ),
-				__( 'Read more about why you should use HTTPS' ),
+				__( 'Learn more about why you should use HTTPS' ),
 				/* translators: accessibility text */
 				__( '(opens in a new tab)' )
 			),
@@ -1487,7 +1493,7 @@ class WP_Site_Health {
 			}
 
 			$output .= sprintf(
-				'<li><span class="%s"><span class="screen-reader-text">%s</span></span> %s</li>',
+				'<li><span class="dashicons %s"><span class="screen-reader-text">%s</span></span> %s</li>',
 				esc_attr( $test->severity ),
 				$severity_string,
 				$test->description
@@ -1577,7 +1583,7 @@ class WP_Site_Health {
 		$blocked = false;
 		$hosts   = array();
 
-		if ( defined( 'WP_HTTP_BLOCK_EXTERNAL' ) ) {
+		if ( defined( 'WP_HTTP_BLOCK_EXTERNAL' ) && WP_HTTP_BLOCK_EXTERNAL ) {
 			$blocked = true;
 		}
 

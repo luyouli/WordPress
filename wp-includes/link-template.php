@@ -37,7 +37,7 @@ function the_permalink( $post = 0 ) {
  *
  * @since 2.2.0
  *
- * @global WP_Rewrite $wp_rewrite
+ * @global WP_Rewrite $wp_rewrite WordPress rewrite component.
  *
  * @param string $string      URL with or without a trailing slash.
  * @param string $type_of_url Optional. The type of URL being considered (e.g. single, category, etc)
@@ -212,7 +212,7 @@ function get_permalink( $post = 0, $leavename = false ) {
 			$author     = $authordata->user_nicename;
 		}
 
-		$date           = explode( ' ', date( 'Y m d H i s', $unixtime ) );
+		$date           = explode( ' ', gmdate( 'Y m d H i s', $unixtime ) );
 		$rewritereplace =
 		array(
 			$date[0],
@@ -252,7 +252,7 @@ function get_permalink( $post = 0, $leavename = false ) {
  *
  * @since 3.0.0
  *
- * @global WP_Rewrite $wp_rewrite
+ * @global WP_Rewrite $wp_rewrite WordPress rewrite component.
  *
  * @param int|WP_Post $id        Optional. Post ID or post object. Default is the global `$post`.
  * @param bool        $leavename Optional, defaults to false. Whether to keep post name. Default false.
@@ -355,7 +355,7 @@ function get_page_link( $post = false, $leavename = false, $sample = false ) {
  * @since 2.1.0
  * @access private
  *
- * @global WP_Rewrite $wp_rewrite
+ * @global WP_Rewrite $wp_rewrite WordPress rewrite component.
  *
  * @param int|WP_Post $post      Optional. Post ID or object. Default uses the global `$post`.
  * @param bool        $leavename Optional. Whether to keep the page name. Default false.
@@ -401,7 +401,7 @@ function _get_page_link( $post = false, $leavename = false, $sample = false ) {
  *
  * @since 2.0.0
  *
- * @global WP_Rewrite $wp_rewrite
+ * @global WP_Rewrite $wp_rewrite WordPress rewrite component.
  *
  * @param int|object $post      Optional. Post ID or object. Default uses the global `$post`.
  * @param bool       $leavename Optional. Whether to keep the page name. Default false.
@@ -462,7 +462,7 @@ function get_attachment_link( $post = null, $leavename = false ) {
  *
  * @since 1.5.0
  *
- * @global WP_Rewrite $wp_rewrite
+ * @global WP_Rewrite $wp_rewrite WordPress rewrite component.
  *
  * @param int|bool $year False for current year or year for permalink.
  * @return string The permalink for the specified year archive.
@@ -496,7 +496,7 @@ function get_year_link( $year ) {
  *
  * @since 1.0.0
  *
- * @global WP_Rewrite $wp_rewrite
+ * @global WP_Rewrite $wp_rewrite WordPress rewrite component.
  *
  * @param bool|int $year  False for current year. Integer of year.
  * @param bool|int $month False for current month. Integer of month.
@@ -536,7 +536,7 @@ function get_month_link( $year, $month ) {
  *
  * @since 1.0.0
  *
- * @global WP_Rewrite $wp_rewrite
+ * @global WP_Rewrite $wp_rewrite WordPress rewrite component.
  *
  * @param bool|int $year  False for current year. Integer of year.
  * @param bool|int $month False for current month. Integer of month.
@@ -606,7 +606,7 @@ function the_feed_link( $anchor, $feed = '' ) {
  *
  * @since 1.5.0
  *
- * @global WP_Rewrite $wp_rewrite
+ * @global WP_Rewrite $wp_rewrite WordPress rewrite component.
  *
  * @param string $feed Optional. Feed type. Default empty.
  * @return string The feed permalink.
@@ -1076,7 +1076,7 @@ function edit_term_link( $link = '', $before = '', $after = '', $term = null, $e
  *
  * @since  3.0.0
  *
- * @global WP_Rewrite $wp_rewrite
+ * @global WP_Rewrite $wp_rewrite WordPress rewrite component.
  *
  * @param string $query Optional. The query string to use. If empty the current query is used. Default empty.
  * @return string The search permalink.
@@ -1117,7 +1117,7 @@ function get_search_link( $query = '' ) {
  *
  * @since 2.5.0
  *
- * @global WP_Rewrite $wp_rewrite
+ * @global WP_Rewrite $wp_rewrite WordPress rewrite component.
  *
  * @param string $search_query Optional. Search query. Default empty.
  * @param string $feed         Optional. Feed type. Default empty.
@@ -1157,7 +1157,7 @@ function get_search_feed_link( $search_query = '', $feed = '' ) {
  *
  * @since 2.5.0
  *
- * @global WP_Rewrite $wp_rewrite
+ * @global WP_Rewrite $wp_rewrite WordPress rewrite component.
  *
  * @param string $search_query Optional. Search query. Default empty.
  * @param string $feed         Optional. Feed type. Default empty.
@@ -1190,14 +1190,16 @@ function get_search_comments_feed_link( $search_query = '', $feed = '' ) {
  * @since 3.1.0
  * @since 4.5.0 Support for posts was added.
  *
- * @global WP_Rewrite $wp_rewrite
+ * @global WP_Rewrite $wp_rewrite WordPress rewrite component.
  *
  * @param string $post_type Post type.
  * @return string|false The post type archive permalink.
  */
 function get_post_type_archive_link( $post_type ) {
 	global $wp_rewrite;
-	if ( ! $post_type_obj = get_post_type_object( $post_type ) ) {
+
+	$post_type_obj = get_post_type_object( $post_type );
+	if ( ! $post_type_obj ) {
 		return false;
 	}
 
@@ -1256,7 +1258,8 @@ function get_post_type_archive_feed_link( $post_type, $feed = '' ) {
 		$feed = $default_feed;
 	}
 
-	if ( ! $link = get_post_type_archive_link( $post_type ) ) {
+	$link = get_post_type_archive_link( $post_type );
+	if ( ! $link ) {
 		return false;
 	}
 
@@ -1338,7 +1341,8 @@ function get_preview_post_link( $post = null, $query_args = array(), $preview_li
  *                     not allow an editing UI.
  */
 function get_edit_post_link( $id = 0, $context = 'display' ) {
-	if ( ! $post = get_post( $id ) ) {
+	$post = get_post( $id );
+	if ( ! $post ) {
 		return;
 	}
 
@@ -1391,11 +1395,13 @@ function get_edit_post_link( $id = 0, $context = 'display' ) {
  * @param string      $class  Optional. Add custom class to link. Default 'post-edit-link'.
  */
 function edit_post_link( $text = null, $before = '', $after = '', $id = 0, $class = 'post-edit-link' ) {
-	if ( ! $post = get_post( $id ) ) {
+	$post = get_post( $id );
+	if ( ! $post ) {
 		return;
 	}
 
-	if ( ! $url = get_edit_post_link( $post->ID ) ) {
+	$url = get_edit_post_link( $post->ID );
+	if ( ! $url ) {
 		return;
 	}
 
@@ -1434,7 +1440,8 @@ function get_delete_post_link( $id = 0, $deprecated = '', $force_delete = false 
 		_deprecated_argument( __FUNCTION__, '3.0.0' );
 	}
 
-	if ( ! $post = get_post( $id ) ) {
+	$post = get_post( $id );
+	if ( ! $post ) {
 		return;
 	}
 
@@ -1677,7 +1684,8 @@ function get_next_post( $in_same_term = false, $excluded_terms = '', $taxonomy =
 function get_adjacent_post( $in_same_term = false, $excluded_terms = '', $previous = true, $taxonomy = 'category' ) {
 	global $wpdb;
 
-	if ( ( ! $post = get_post() ) || ! taxonomy_exists( $taxonomy ) ) {
+	$post = get_post();
+	if ( ! $post || ! taxonomy_exists( $taxonomy ) ) {
 		return null;
 	}
 
@@ -1859,7 +1867,8 @@ function get_adjacent_post( $in_same_term = false, $excluded_terms = '', $previo
  * @return string|void The adjacent post relational link URL.
  */
 function get_adjacent_post_rel_link( $title = '%title', $in_same_term = false, $excluded_terms = '', $previous = true, $taxonomy = 'category' ) {
-	if ( $previous && is_attachment() && $post = get_post() ) {
+	$post = get_post();
+	if ( $previous && is_attachment() && $post ) {
 		$post = get_post( $post->post_parent );
 	} else {
 		$post = get_adjacent_post( $in_same_term, $excluded_terms, $previous, $taxonomy );
@@ -2187,7 +2196,7 @@ function adjacent_post_link( $format, $link, $in_same_term = false, $excluded_te
  *
  * @since 1.5.0
  *
- * @global WP_Rewrite $wp_rewrite
+ * @global WP_Rewrite $wp_rewrite WordPress rewrite component.
  *
  * @param int  $pagenum Optional. Page number. Default 1.
  * @param bool $escape  Optional. Whether to escape the URL for display, with esc_url(). Defaults to true.
@@ -2313,7 +2322,7 @@ function next_posts( $max_page = 0, $echo = true ) {
  * @since 2.7.0
  *
  * @global int      $paged
- * @global WP_Query $wp_query
+ * @global WP_Query $wp_query WordPress Query object.
  *
  * @param string $label    Content for link text.
  * @param int    $max_page Optional. Max pages. Default 0.
@@ -2451,7 +2460,7 @@ function previous_posts_link( $label = null ) {
  *
  * @since 2.8.0
  *
- * @global WP_Query $wp_query
+ * @global WP_Query $wp_query WordPress Query object.
  *
  * @param string|array $args {
  *     Optional. Arguments to build the post pages link navigation.
@@ -2746,7 +2755,7 @@ function _navigation_markup( $links, $class = 'posts-navigation', $screen_reader
  *
  * @since 2.7.0
  *
- * @global WP_Rewrite $wp_rewrite
+ * @global WP_Rewrite $wp_rewrite WordPress rewrite component.
  *
  * @param int $pagenum  Optional. Page number. Default 1.
  * @param int $max_page Optional. The maximum number of comment pages. Default 0.
@@ -2792,7 +2801,7 @@ function get_comments_pagenum_link( $pagenum = 1, $max_page = 0 ) {
  *
  * @since 2.7.1
  *
- * @global WP_Query $wp_query
+ * @global WP_Query $wp_query WordPress Query object.
  *
  * @param string $label    Optional. Label for link text. Default empty.
  * @param int    $max_page Optional. Max page. Default 0.
@@ -2903,7 +2912,7 @@ function previous_comments_link( $label = '' ) {
  * @see paginate_links()
  * @since 2.7.0
  *
- * @global WP_Rewrite $wp_rewrite
+ * @global WP_Rewrite $wp_rewrite WordPress rewrite component.
  *
  * @param string|array $args Optional args. See paginate_links(). Default empty array.
  * @return string|array|void Markup for comment page links or array of comment page links.
@@ -4083,7 +4092,8 @@ function get_avatar_data( $id_or_email, $args = null ) {
 	}
 
 	$email_hash = '';
-	$user       = $email = false;
+	$user       = false;
+	$email      = false;
 
 	if ( is_object( $id_or_email ) && isset( $id_or_email->comment_ID ) ) {
 		$id_or_email = get_comment( $id_or_email );

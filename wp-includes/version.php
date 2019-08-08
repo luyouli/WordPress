@@ -13,21 +13,21 @@
  *
  * @global string $wp_version
  */
-$wp_version = '5.3-alpha-45285';
+$wp_version = '5.3-alpha-45769';
 
 /**
  * Holds the WordPress DB revision, increments when changes are made to the WordPress DB schema.
  *
  * @global int $wp_db_version
  */
-$wp_db_version = 44719;
+$wp_db_version = 45744;
 
 /**
  * Holds the TinyMCE version
  *
  * @global string $tinymce_version
  */
-$tinymce_version = '4920-20181217';
+$tinymce_version = '4940-20190515';
 
 /**
  * Holds the required PHP version

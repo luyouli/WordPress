@@ -82,7 +82,7 @@ this["wp"] = this["wp"] || {}; this["wp"]["formatLibrary"] =
 /******/
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 367);
+/******/ 	return __webpack_require__(__webpack_require__.s = 353);
 /******/ })
 /************************************************************************/
 /******/ ({
@@ -403,7 +403,7 @@ function _typeof(obj) {
 
 /***/ }),
 
-/***/ 367:
+/***/ 353:
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -1005,7 +1005,8 @@ var inline_URLPopoverAtLink = function URLPopoverAtLink(_ref3) {
       props = Object(objectWithoutProperties["a" /* default */])(_ref3, ["isActive", "addingLink", "value"]);
 
   var anchorRect = Object(external_this_wp_element_["useMemo"])(function () {
-    var range = window.getSelection().getRangeAt(0);
+    var selection = window.getSelection();
+    var range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
 
     if (!range) {
       return;
