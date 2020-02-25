@@ -37,7 +37,7 @@ function get_the_ID() { // phpcs:ignore WordPress.NamingConventions.ValidFunctio
  * @param string $before Optional. Markup to prepend to the title. Default empty.
  * @param string $after  Optional. Markup to append to the title. Default empty.
  * @param bool   $echo   Optional. Whether to echo or return the title. Default true for echo.
- * @return string|void Current post title if $echo is false.
+ * @return void|string Void if `$echo` argument is true, current post title if `$echo` is false.
  */
 function the_title( $before = '', $after = '', $echo = true ) {
 	$title = get_the_title();
@@ -75,7 +75,7 @@ function the_title( $before = '', $after = '', $echo = true ) {
  *     @type bool    $echo   Whether to echo or return the title. Default true for echo.
  *     @type WP_Post $post   Current post object to retrieve the title for.
  * }
- * @return string|void String when echo is false.
+ * @return void|string Void if 'echo' argument is true, the title attribute if 'echo' is false.
  */
 function the_title_attribute( $args = '' ) {
 	$defaults    = array(
@@ -123,6 +123,9 @@ function get_the_title( $post = 0 ) {
 	if ( ! is_admin() ) {
 		if ( ! empty( $post->post_password ) ) {
 
+			/* translators: %s: Protected post title. */
+			$prepend = __( 'Protected: %s' );
+
 			/**
 			 * Filters the text prepended to the post title for protected posts.
 			 *
@@ -134,9 +137,12 @@ function get_the_title( $post = 0 ) {
 			 *                         Default 'Protected: %s'.
 			 * @param WP_Post $post    Current post object.
 			 */
-			$protected_title_format = apply_filters( 'protected_title_format', __( 'Protected: %s' ), $post );
+			$protected_title_format = apply_filters( 'protected_title_format', $prepend, $post );
 			$title                  = sprintf( $protected_title_format, $title );
 		} elseif ( isset( $post->post_status ) && 'private' == $post->post_status ) {
+
+			/* translators: %s: Private post title. */
+			$prepend = __( 'Private: %s' );
 
 			/**
 			 * Filters the text prepended to the post title of private posts.
@@ -149,7 +155,7 @@ function get_the_title( $post = 0 ) {
 			 *                         Default 'Private: %s'.
 			 * @param WP_Post $post    Current post object.
 			 */
-			$private_title_format = apply_filters( 'private_title_format', __( 'Private: %s' ), $post );
+			$private_title_format = apply_filters( 'private_title_format', $prepend, $post );
 			$title                = sprintf( $private_title_format, $title );
 		}
 	}
@@ -286,7 +292,7 @@ function get_the_content( $more_link_text = null, $strip_teaser = false, $post =
 		$more_link_text = sprintf(
 			'<span aria-label="%1$s">%2$s</span>',
 			sprintf(
-				/* translators: %s: Name of current post */
+				/* translators: %s: Post title. */
 				__( 'Continue reading %s' ),
 				the_title_attribute(
 					array(
@@ -307,8 +313,10 @@ function get_the_content( $more_link_text = null, $strip_teaser = false, $post =
 		return get_the_password_form( $_post );
 	}
 
-	if ( $elements['page'] > count( $elements['pages'] ) ) { // if the requested page doesn't exist
-		$elements['page'] = count( $elements['pages'] ); // give them the highest numbered page that DOES exist
+	// If the requested page doesn't exist.
+	if ( $elements['page'] > count( $elements['pages'] ) ) {
+		// Give them the highest numbered page that DOES exist.
+		$elements['page'] = count( $elements['pages'] );
 	}
 
 	$page_no = $elements['page'];
@@ -330,7 +338,7 @@ function get_the_content( $more_link_text = null, $strip_teaser = false, $post =
 		$content = array( $content );
 	}
 
-	if ( false !== strpos( $_post->post_content, '<!--noteaser-->' ) && ( ! $elements['multipage'] || $elements['page'] == 1 ) ) {
+	if ( false !== strpos( $_post->post_content, '<!--noteaser-->' ) && ( ! $elements['multipage'] || 1 == $elements['page'] ) ) {
 		$strip_teaser = true;
 	}
 
@@ -362,24 +370,7 @@ function get_the_content( $more_link_text = null, $strip_teaser = false, $post =
 		}
 	}
 
-	if ( $preview ) { // Preview fix for JavaScript bug with foreign languages.
-		$output = preg_replace_callback( '/\%u([0-9A-F]{4})/', '_convert_urlencoded_to_entities', $output );
-	}
-
 	return $output;
-}
-
-/**
- * Preview fix for JavaScript bug with foreign languages.
- *
- * @since 3.1.0
- * @access private
- *
- * @param array $match Match array from preg_replace_callback.
- * @return string
- */
-function _convert_urlencoded_to_entities( $match ) {
-	return '&#' . base_convert( $match[1], 16, 10 ) . ';';
 }
 
 /**
@@ -430,8 +421,8 @@ function get_the_excerpt( $post = null ) {
 	 * @since 1.2.0
 	 * @since 4.5.0 Introduced the `$post` parameter.
 	 *
-	 * @param string $post_excerpt The post excerpt.
-	 * @param WP_Post $post Post object.
+	 * @param string  $post_excerpt The post excerpt.
+	 * @param WP_Post $post         Post object.
 	 */
 	return apply_filters( 'get_the_excerpt', $post->post_excerpt, $post );
 }
@@ -462,7 +453,7 @@ function has_excerpt( $post = 0 ) {
  * @param int|WP_Post  $post_id Optional. Post ID or post object. Defaults to the global `$post`.
  */
 function post_class( $class = '', $post_id = null ) {
-	// Separates classes with a single space, collates classes for post DIV
+	// Separates classes with a single space, collates classes for post DIV.
 	echo 'class="' . join( ' ', get_post_class( $class, $post_id ) ) . '"';
 }
 
@@ -513,7 +504,7 @@ function get_post_class( $class = '', $post_id = null ) {
 	$classes[] = 'type-' . $post->post_type;
 	$classes[] = 'status-' . $post->post_status;
 
-	// Post Format
+	// Post Format.
 	if ( post_type_supports( $post->post_type, 'post-formats' ) ) {
 		$post_format = get_post_format( $post->ID );
 
@@ -538,7 +529,7 @@ function get_post_class( $class = '', $post_id = null ) {
 		$classes[] = 'has-post-thumbnail';
 	}
 
-	// sticky for Sticky Posts
+	// Sticky for Sticky Posts.
 	if ( is_sticky( $post->ID ) ) {
 		if ( is_home() && ! is_paged() ) {
 			$classes[] = 'sticky';
@@ -547,10 +538,10 @@ function get_post_class( $class = '', $post_id = null ) {
 		}
 	}
 
-	// hentry for hAtom compliance
+	// hentry for hAtom compliance.
 	$classes[] = 'hentry';
 
-	// All public taxonomies
+	// All public taxonomies.
 	$taxonomies = get_taxonomies( array( 'public' => true ) );
 	foreach ( (array) $taxonomies as $taxonomy ) {
 		if ( is_object_in_taxonomy( $post->post_type, $taxonomy ) ) {
@@ -598,7 +589,7 @@ function get_post_class( $class = '', $post_id = null ) {
  * @param string|string[] $class Space-separated string or array of class names to add to the class list.
  */
 function body_class( $class = '' ) {
-	// Separates class names with a single space, collates class names for body element
+	// Separates class names with a single space, collates class names for body element.
 	echo 'class="' . join( ' ', get_body_class( $class ) ) . '"';
 }
 
@@ -675,7 +666,7 @@ function get_body_class( $class = '' ) {
 				$classes[] = 'single-' . sanitize_html_class( $post->post_type, $post_id );
 				$classes[] = 'postid-' . $post_id;
 
-				// Post Format
+				// Post Format.
 				if ( post_type_supports( $post->post_type, 'post-formats' ) ) {
 					$post_format = get_post_format( $post->ID );
 
@@ -889,7 +880,7 @@ function post_password_required( $post = null ) {
 }
 
 //
-// Page Template Functions for usage in Themes
+// Page Template Functions for usage in Themes.
 //
 
 /**
@@ -1073,7 +1064,8 @@ function _wp_link_page( $i ) {
  * @since 1.5.0
  *
  * @param string $key Meta data key name.
- * @return false|string|array Array of values or single value, if only one element exists. False will be returned if key does not exist.
+ * @return array|string|false Array of values, or single value if only one element exists.
+ *                            False if the key does not exist.
  */
 function post_custom( $key = '' ) {
 	$custom = get_post_custom();
@@ -1109,7 +1101,7 @@ function the_meta() {
 
 			$html = sprintf(
 				"<li><span class='post-meta-key'>%s</span> %s</li>\n",
-				/* translators: %s: Post custom field name */
+				/* translators: %s: Post custom field name. */
 				sprintf( _x( '%s:', 'Post custom field name' ), $key ),
 				$value
 			);
@@ -1133,7 +1125,7 @@ function the_meta() {
 }
 
 //
-// Pages
+// Pages.
 //
 
 /**
@@ -1164,7 +1156,7 @@ function the_meta() {
  *     @type string       $value_field           Post field used to populate the 'value' attribute of the option
  *                                               elements. Accepts any valid post field. Default 'ID'.
  * }
- * @return string HTML content, if not displaying.
+ * @return string HTML dropdown list of pages.
  */
 function wp_dropdown_pages( $args = '' ) {
 	$defaults = array(
@@ -1185,7 +1177,7 @@ function wp_dropdown_pages( $args = '' ) {
 
 	$pages  = get_pages( $parsed_args );
 	$output = '';
-	// Back-compat with old system where both id and name were based on $name argument
+	// Back-compat with old system where both id and name were based on $name argument.
 	if ( empty( $parsed_args['id'] ) ) {
 		$parsed_args['id'] = $parsed_args['name'];
 	}
@@ -1213,15 +1205,16 @@ function wp_dropdown_pages( $args = '' ) {
 	 * @since 2.1.0
 	 * @since 4.4.0 `$parsed_args` and `$pages` added as arguments.
 	 *
-	 * @param string $output      HTML output for drop down list of pages.
-	 * @param array  $parsed_args The parsed arguments array.
-	 * @param array  $pages       List of WP_Post objects returned by `get_pages()`
+	 * @param string    $output      HTML output for drop down list of pages.
+	 * @param array     $parsed_args The parsed arguments array.
+	 * @param WP_Post[] $pages       Array of the page objects.
 	 */
 	$html = apply_filters( 'wp_dropdown_pages', $output, $parsed_args, $pages );
 
 	if ( $parsed_args['echo'] ) {
 		echo $html;
 	}
+
 	return $html;
 }
 
@@ -1263,7 +1256,7 @@ function wp_dropdown_pages( $args = '' ) {
  *                                      Default 'preserve'.
  *     @type Walker       $walker       Walker instance to use for listing pages. Default empty (Walker_Page).
  * }
- * @return string|void HTML list of pages.
+ * @return void|string Void if 'echo' argument is true, HTML list of pages if 'echo' is false.
  */
 function wp_list_pages( $args = '' ) {
 	$defaults = array(
@@ -1285,17 +1278,17 @@ function wp_list_pages( $args = '' ) {
 	$parsed_args = wp_parse_args( $args, $defaults );
 
 	if ( ! in_array( $parsed_args['item_spacing'], array( 'preserve', 'discard' ), true ) ) {
-		// invalid value, fall back to default.
+		// Invalid value, fall back to default.
 		$parsed_args['item_spacing'] = $defaults['item_spacing'];
 	}
 
 	$output       = '';
 	$current_page = 0;
 
-	// sanitize, mostly to keep spaces out
+	// Sanitize, mostly to keep spaces out.
 	$parsed_args['exclude'] = preg_replace( '/[^0-9,]/', '', $parsed_args['exclude'] );
 
-	// Allow plugins to filter an array of excluded pages (but don't put a nullstring into the array)
+	// Allow plugins to filter an array of excluded pages (but don't put a nullstring into the array).
 	$exclude_array = ( $parsed_args['exclude'] ) ? explode( ',', $parsed_args['exclude'] ) : array();
 
 	/**
@@ -1303,7 +1296,7 @@ function wp_list_pages( $args = '' ) {
 	 *
 	 * @since 2.1.0
 	 *
-	 * @param array $exclude_array An array of page IDs to exclude.
+	 * @param string[] $exclude_array An array of page IDs to exclude.
 	 */
 	$parsed_args['exclude'] = implode( ',', apply_filters( 'wp_list_pages_excludes', $exclude_array ) );
 
@@ -1341,9 +1334,9 @@ function wp_list_pages( $args = '' ) {
 	 *
 	 * @see wp_list_pages()
 	 *
-	 * @param string $output      HTML output of the pages list.
-	 * @param array  $parsed_args An array of page-listing arguments.
-	 * @param array  $pages       List of WP_Post objects returned by `get_pages()`
+	 * @param string    $output      HTML output of the pages list.
+	 * @param array     $parsed_args An array of page-listing arguments.
+	 * @param WP_Post[] $pages       Array of the page objects.
 	 */
 	$html = apply_filters( 'wp_list_pages', $output, $parsed_args, $pages );
 
@@ -1384,7 +1377,7 @@ function wp_list_pages( $args = '' ) {
  *                                         or 'discard'. Default 'discard'.
  *     @type Walker          $walker       Walker instance to use for listing pages. Default empty (Walker_Page).
  * }
- * @return string|void HTML menu
+ * @return void|string Void if 'echo' argument is true, HTML menu if 'echo' is false.
  */
 function wp_page_menu( $args = array() ) {
 	$defaults = array(
@@ -1403,7 +1396,7 @@ function wp_page_menu( $args = array() ) {
 	$args     = wp_parse_args( $args, $defaults );
 
 	if ( ! in_array( $args['item_spacing'], array( 'preserve', 'discard' ) ) ) {
-		// invalid value, fall back to default.
+		// Invalid value, fall back to default.
 		$args['item_spacing'] = $defaults['item_spacing'];
 	}
 
@@ -1430,7 +1423,7 @@ function wp_page_menu( $args = array() ) {
 
 	$list_args = $args;
 
-	// Show Home in the menu
+	// Show Home in the menu.
 	if ( ! empty( $args['show_home'] ) ) {
 		if ( true === $args['show_home'] || '1' === $args['show_home'] || 1 === $args['show_home'] ) {
 			$text = __( 'Home' );
@@ -1442,7 +1435,7 @@ function wp_page_menu( $args = array() ) {
 			$class = 'class="current_page_item"';
 		}
 		$menu .= '<li ' . $class . '><a href="' . home_url( '/' ) . '">' . $args['link_before'] . $text . $args['link_after'] . '</a></li>';
-		// If the front page is a page, add it to the exclude list
+		// If the front page is a page, add it to the exclude list.
 		if ( get_option( 'show_on_front' ) == 'page' ) {
 			if ( ! empty( $list_args['exclude'] ) ) {
 				$list_args['exclude'] .= ',';
@@ -1466,7 +1459,7 @@ function wp_page_menu( $args = array() ) {
 
 	if ( $menu ) {
 
-		// wp_nav_menu doesn't set before and after
+		// wp_nav_menu() doesn't set before and after.
 		if ( isset( $args['fallback_cb'] ) &&
 			'wp_page_menu' === $args['fallback_cb'] &&
 			'ul' !== $container ) {
@@ -1499,6 +1492,7 @@ function wp_page_menu( $args = array() ) {
 	 * @param array  $args An array of arguments.
 	 */
 	$menu = apply_filters( 'wp_page_menu', $menu, $args );
+
 	if ( $args['echo'] ) {
 		echo $menu;
 	} else {
@@ -1507,7 +1501,7 @@ function wp_page_menu( $args = array() ) {
 }
 
 //
-// Page helpers
+// Page helpers.
 //
 
 /**
@@ -1535,21 +1529,23 @@ function walk_page_tree( $pages, $depth, $current_page, $r ) {
 		}
 	}
 
-	$args = array( $pages, $depth, $r, $current_page );
-	return call_user_func_array( array( $walker, 'walk' ), $args );
+	return $walker->walk( $pages, $depth, $r, $current_page );
 }
 
 /**
  * Retrieve HTML dropdown (select) content for page list.
  *
- * @uses Walker_PageDropdown to create HTML dropdown content.
  * @since 2.1.0
+ * @since 5.3.0 Formalized the existing `...$args` parameter by adding it
+ *              to the function signature.
+ *
+ * @uses Walker_PageDropdown to create HTML dropdown content.
  * @see Walker_PageDropdown::walk() for parameters and return description.
  *
  * @return string
  */
 function walk_page_dropdown_tree( ...$args ) {
-	if ( empty( $args[2]['walker'] ) ) { // the user's options are the third parameter
+	if ( empty( $args[2]['walker'] ) ) { // The user's options are the third parameter.
 		$walker = new Walker_PageDropdown;
 	} else {
 		$walker = $args[2]['walker'];
@@ -1559,7 +1555,7 @@ function walk_page_dropdown_tree( ...$args ) {
 }
 
 //
-// Attachments
+// Attachments.
 //
 
 /**
@@ -1658,7 +1654,7 @@ function wp_get_attachment_link( $id = 0, $size = 'thumbnail', $permalink = fals
 function prepend_attachment( $content ) {
 	$post = get_post();
 
-	if ( empty( $post->post_type ) || $post->post_type != 'attachment' ) {
+	if ( empty( $post->post_type ) || 'attachment' !== $post->post_type ) {
 		return $content;
 	}
 
@@ -1677,7 +1673,7 @@ function prepend_attachment( $content ) {
 		$p = wp_audio_shortcode( array( 'src' => wp_get_attachment_url() ) );
 	} else {
 		$p = '<p class="attachment">';
-		// show the medium sized image representation of the attachment if available, and link to the raw file
+		// Show the medium sized image representation of the attachment if available, and link to the raw file.
 		$p .= wp_get_attachment_link( 0, 'medium', false );
 		$p .= '</p>';
 	}
@@ -1697,7 +1693,7 @@ function prepend_attachment( $content ) {
 }
 
 //
-// Misc
+// Misc.
 //
 
 /**
@@ -1734,7 +1730,7 @@ function get_the_password_form( $post = 0 ) {
  * Determines whether currently in a page template.
  *
  * This template tag allows you to determine if you are in a page template.
- * You can optionally provide a template name or array of template names
+ * You can optionally provide a template filename or array of template filenames
  * and then the check will be specific to that template.
  *
  * For more information on this and similar theme functions, check out
@@ -1745,7 +1741,7 @@ function get_the_password_form( $post = 0 ) {
  * @since 4.2.0 The `$template` parameter was changed to also accept an array of page templates.
  * @since 4.7.0 Now works with any post type, not just pages.
  *
- * @param string|array $template The specific template name or array of templates to match.
+ * @param string|array $template The specific template filename or array of templates to match.
  * @return bool True on success, false on failure.
  */
 function is_page_template( $template = '' ) {
@@ -1775,14 +1771,14 @@ function is_page_template( $template = '' ) {
 }
 
 /**
- * Get the specific template name for a given post.
+ * Get the specific template filename for a given post.
  *
  * @since 3.4.0
  * @since 4.7.0 Now works with any post type, not just pages.
  *
  * @param int|WP_Post $post Optional. Post ID or WP_Post object. Default is global $post.
  * @return string|false Page template filename. Returns an empty string when the default page template
- *  is in use. Returns false if the post does not exist.
+ *                      is in use. Returns false if the post does not exist.
  */
 function get_page_template_slug( $post = null ) {
 	$post = get_post( $post );
@@ -1819,11 +1815,11 @@ function wp_post_revision_title( $revision, $link = true ) {
 		return false;
 	}
 
-	/* translators: revision date format, see https://secure.php.net/date */
+	/* translators: Revision date format, see https://www.php.net/date */
 	$datef = _x( 'F j, Y @ H:i:s', 'revision date format' );
-	/* translators: %s: revision date */
+	/* translators: %s: Revision date. */
 	$autosavef = __( '%s [Autosave]' );
-	/* translators: %s: revision date */
+	/* translators: %s: Revision date. */
 	$currentf = __( '%s [Current Revision]' );
 
 	$date      = date_i18n( $datef, strtotime( $revision->post_modified ) );
@@ -1861,7 +1857,7 @@ function wp_post_revision_title_expanded( $revision, $link = true ) {
 	}
 
 	$author = get_the_author_meta( 'display_name', $revision->post_author );
-	/* translators: revision date format, see https://secure.php.net/date */
+	/* translators: Revision date format, see https://www.php.net/date */
 	$datef = _x( 'F j, Y @ H:i:s', 'revision date format' );
 
 	$gravatar = get_avatar( $revision->post_author, 24 );
@@ -1873,17 +1869,17 @@ function wp_post_revision_title_expanded( $revision, $link = true ) {
 	}
 
 	$revision_date_author = sprintf(
-		/* translators: post revision title: 1: author avatar, 2: author name, 3: time ago, 4: date */
+		/* translators: Post revision title. 1: Author avatar, 2: Author name, 3: Time ago, 4: Date. */
 		__( '%1$s %2$s, %3$s ago (%4$s)' ),
 		$gravatar,
 		$author,
-		human_time_diff( strtotime( $revision->post_modified ), current_time( 'timestamp' ) ),
+		human_time_diff( strtotime( $revision->post_modified_gmt ) ),
 		$date
 	);
 
-	/* translators: %s: revision date with author avatar */
+	/* translators: %s: Revision date with author avatar. */
 	$autosavef = __( '%s [Autosave]' );
-	/* translators: %s: revision date with author avatar */
+	/* translators: %s: Revision date with author avatar. */
 	$currentf = __( '%s [Current Revision]' );
 
 	if ( ! wp_is_post_revision( $revision ) ) {
@@ -1922,7 +1918,7 @@ function wp_list_post_revisions( $post_id = 0, $type = 'all' ) {
 		return;
 	}
 
-	// $args array with (parent, format, right, left, type) deprecated since 3.6
+	// $args array with (parent, format, right, left, type) deprecated since 3.6.
 	if ( is_array( $type ) ) {
 		$type = ! empty( $type['type'] ) ? $type['type'] : $type;
 		_deprecated_argument( __FUNCTION__, '3.6.0' );

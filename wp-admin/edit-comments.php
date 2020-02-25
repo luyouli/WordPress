@@ -7,7 +7,7 @@
  */
 
 /** WordPress Administration Bootstrap */
-require_once( dirname( __FILE__ ) . '/admin.php' );
+require_once __DIR__ . '/admin.php';
 if ( ! current_user_can( 'edit_posts' ) ) {
 	wp_die(
 		'<h1>' . __( 'You need a higher level of permission.' ) . '</h1>' .
@@ -31,7 +31,7 @@ if ( $doaction ) {
 		$doaction       = 'delete';
 	} elseif ( isset( $_REQUEST['delete_comments'] ) ) {
 		$comment_ids = $_REQUEST['delete_comments'];
-		$doaction    = ( $_REQUEST['action'] != -1 ) ? $_REQUEST['action'] : $_REQUEST['action2'];
+		$doaction    = ( -1 != $_REQUEST['action'] ) ? $_REQUEST['action'] : $_REQUEST['action2'];
 	} elseif ( isset( $_REQUEST['ids'] ) ) {
 		$comment_ids = array_map( 'absint', explode( ',', $_REQUEST['ids'] ) );
 	} elseif ( wp_get_referer() ) {
@@ -52,7 +52,7 @@ if ( $doaction ) {
 
 	wp_defer_comment_counting( true );
 
-	foreach ( $comment_ids as $comment_id ) { // Check the permissions on each
+	foreach ( $comment_ids as $comment_id ) { // Check the permissions on each.
 		if ( ! current_user_can( 'edit_comment', $comment_id ) ) {
 			continue;
 		}
@@ -92,20 +92,7 @@ if ( $doaction ) {
 	if ( ! in_array( $doaction, array( 'approve', 'unapprove', 'spam', 'unspam', 'trash', 'delete' ), true ) ) {
 		$screen = get_current_screen()->id;
 
-		/**
-		 * Fires when a custom bulk action should be handled.
-		 *
-		 * The redirect link should be modified with success or failure feedback
-		 * from the action to be used to display feedback to the user.
-		 *
-		 * The dynamic portion of the hook name, `$screen`, refers to the current screen ID.
-		 *
-		 * @since 4.7.0
-		 *
-		 * @param string $redirect_url The redirect URL.
-		 * @param string $doaction     The action being taken.
-		 * @param array  $items        The items to take the action on.
-		 */
+		/** This action is documented in wp-admin/edit.php */
 		$redirect_to = apply_filters( "handle_bulk_actions-{$screen}", $redirect_to, $doaction, $comment_ids ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores
 	}
 
@@ -152,15 +139,15 @@ if ( $post_id ) {
 	$comments_count      = wp_count_comments( $post_id );
 	$draft_or_post_title = wp_html_excerpt( _draft_or_post_title( $post_id ), 50, '&hellip;' );
 	if ( $comments_count->moderated > 0 ) {
-		/* translators: 1: comments count, 2: post title */
 		$title = sprintf(
+			/* translators: 1: Comments count, 2: Post title. */
 			__( 'Comments (%1$s) on &#8220;%2$s&#8221;' ),
 			number_format_i18n( $comments_count->moderated ),
 			$draft_or_post_title
 		);
 	} else {
-		/* translators: %s: post title */
 		$title = sprintf(
+			/* translators: %s: Post title. */
 			__( 'Comments on &#8220;%s&#8221;' ),
 			$draft_or_post_title
 		);
@@ -168,8 +155,8 @@ if ( $post_id ) {
 } else {
 	$comments_count = wp_count_comments();
 	if ( $comments_count->moderated > 0 ) {
-		/* translators: %s: comments count */
 		$title = sprintf(
+			/* translators: %s: Comments count. */
 			__( 'Comments (%s)' ),
 			number_format_i18n( $comments_count->moderated )
 		);
@@ -218,15 +205,15 @@ get_current_screen()->set_screen_reader_content(
 	)
 );
 
-require_once( ABSPATH . 'wp-admin/admin-header.php' );
+require_once ABSPATH . 'wp-admin/admin-header.php';
 ?>
 
 <div class="wrap">
 <h1 class="wp-heading-inline">
 <?php
 if ( $post_id ) {
-	/* translators: %s: link to post */
 	printf(
+		/* translators: %s: Link to post. */
 		__( 'Comments on &#8220;%s&#8221;' ),
 		sprintf(
 			'<a href="%1$s">%2$s</a>',
@@ -243,8 +230,8 @@ if ( $post_id ) {
 <?php
 if ( isset( $_REQUEST['s'] ) && strlen( $_REQUEST['s'] ) ) {
 	echo '<span class="subtitle">';
-	/* translators: %s: search keywords */
 	printf(
+		/* translators: %s: Search query. */
 		__( 'Search results for &#8220;%s&#8221;' ),
 		wp_html_excerpt( esc_html( wp_unslash( $_REQUEST['s'] ) ), 50, '&hellip;' )
 	);
@@ -282,35 +269,35 @@ if ( isset( $_REQUEST['approved'] ) || isset( $_REQUEST['deleted'] ) || isset( $
 
 	if ( $approved > 0 || $deleted > 0 || $trashed > 0 || $untrashed > 0 || $spammed > 0 || $unspammed > 0 || $same > 0 ) {
 		if ( $approved > 0 ) {
-			/* translators: %s: number of comments approved */
-			$messages[] = sprintf( _n( '%s comment approved', '%s comments approved', $approved ), $approved );
+			/* translators: %s: Number of comments. */
+			$messages[] = sprintf( _n( '%s comment approved.', '%s comments approved.', $approved ), $approved );
 		}
 
 		if ( $spammed > 0 ) {
 			$ids = isset( $_REQUEST['ids'] ) ? $_REQUEST['ids'] : 0;
-			/* translators: %s: number of comments marked as spam */
+			/* translators: %s: Number of comments. */
 			$messages[] = sprintf( _n( '%s comment marked as spam.', '%s comments marked as spam.', $spammed ), $spammed ) . ' <a href="' . esc_url( wp_nonce_url( "edit-comments.php?doaction=undo&action=unspam&ids=$ids", 'bulk-comments' ) ) . '">' . __( 'Undo' ) . '</a><br />';
 		}
 
 		if ( $unspammed > 0 ) {
-			/* translators: %s: number of comments restored from the spam */
-			$messages[] = sprintf( _n( '%s comment restored from the spam', '%s comments restored from the spam', $unspammed ), $unspammed );
+			/* translators: %s: Number of comments. */
+			$messages[] = sprintf( _n( '%s comment restored from the spam.', '%s comments restored from the spam.', $unspammed ), $unspammed );
 		}
 
 		if ( $trashed > 0 ) {
 			$ids = isset( $_REQUEST['ids'] ) ? $_REQUEST['ids'] : 0;
-			/* translators: %s: number of comments moved to the Trash */
+			/* translators: %s: Number of comments. */
 			$messages[] = sprintf( _n( '%s comment moved to the Trash.', '%s comments moved to the Trash.', $trashed ), $trashed ) . ' <a href="' . esc_url( wp_nonce_url( "edit-comments.php?doaction=undo&action=untrash&ids=$ids", 'bulk-comments' ) ) . '">' . __( 'Undo' ) . '</a><br />';
 		}
 
 		if ( $untrashed > 0 ) {
-			/* translators: %s: number of comments restored from the Trash */
-			$messages[] = sprintf( _n( '%s comment restored from the Trash', '%s comments restored from the Trash', $untrashed ), $untrashed );
+			/* translators: %s: Number of comments. */
+			$messages[] = sprintf( _n( '%s comment restored from the Trash.', '%s comments restored from the Trash.', $untrashed ), $untrashed );
 		}
 
 		if ( $deleted > 0 ) {
-			/* translators: %s: number of comments permanently deleted */
-			$messages[] = sprintf( _n( '%s comment permanently deleted', '%s comments permanently deleted', $deleted ), $deleted );
+			/* translators: %s: Number of comments. */
+			$messages[] = sprintf( _n( '%s comment permanently deleted.', '%s comments permanently deleted.', $deleted ), $deleted );
 		}
 
 		if ( $same > 0 ) {
@@ -364,4 +351,4 @@ if ( isset( $_REQUEST['approved'] ) || isset( $_REQUEST['deleted'] ) || isset( $
 <?php
 wp_comment_reply( '-1', true, 'detail' );
 wp_comment_trashnotice();
-include( ABSPATH . 'wp-admin/admin-footer.php' ); ?>
+require_once ABSPATH . 'wp-admin/admin-footer.php'; ?>

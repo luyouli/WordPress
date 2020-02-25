@@ -117,12 +117,12 @@ function wp_delete_link( $link_id ) {
 }
 
 /**
- * Retrieves the link categories associated with the link specified.
+ * Retrieves the link category IDs associated with the link specified.
  *
  * @since 2.1.0
  *
- * @param int $link_id Link ID to look up
- * @return array The requested link's categories
+ * @param int $link_id Link ID to look up.
+ * @return int[] The IDs of the requested link's categories.
  */
 function wp_get_link_cats( $link_id = 0 ) {
 	$cats = wp_get_object_terms( $link_id, 'link_category', array( 'fields' => 'ids' ) );
@@ -203,7 +203,7 @@ function wp_insert_link( $linkdata, $wp_error = false ) {
 	}
 
 	if ( $update ) {
-		if ( false === $wpdb->update( $wpdb->links, compact( 'link_url', 'link_name', 'link_image', 'link_target', 'link_description', 'link_visible', 'link_rating', 'link_rel', 'link_notes', 'link_rss' ), compact( 'link_id' ) ) ) {
+		if ( false === $wpdb->update( $wpdb->links, compact( 'link_url', 'link_name', 'link_image', 'link_target', 'link_description', 'link_visible', 'link_owner', 'link_rating', 'link_rel', 'link_notes', 'link_rss' ), compact( 'link_id' ) ) ) {
 			if ( $wp_error ) {
 				return new WP_Error( 'db_update_error', __( 'Could not update link in the database' ), $wpdb->last_error );
 			} else {
@@ -319,7 +319,7 @@ function wp_link_manager_disabled_message() {
 
 	if ( $really_can_manage_links && current_user_can( 'install_plugins' ) ) {
 		$link = network_admin_url( 'plugin-install.php?tab=search&amp;s=Link+Manager' );
-		/* translators: %s: URL of link manager plugin */
+		/* translators: %s: URL to install the Link Manager plugin. */
 		wp_die( sprintf( __( 'If you are looking to use the link manager, please install the <a href="%s">Link Manager</a> plugin.' ), $link ) );
 	}
 

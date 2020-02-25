@@ -7,7 +7,7 @@
  */
 
 /** WordPress Administration Bootstrap */
-require_once( dirname( __FILE__ ) . '/admin.php' );
+require_once __DIR__ . '/admin.php';
 
 if ( is_multisite() ) {
 	if ( ! current_user_can( 'create_users' ) && ! current_user_can( 'promote_users' ) ) {
@@ -58,12 +58,12 @@ if ( isset( $_REQUEST['action'] ) && 'adduser' == $_REQUEST['action'] ) {
 		);
 	}
 
-	// Adding an existing user to this blog
+	// Adding an existing user to this blog.
 	$new_user_email = $user_details->user_email;
 	$redirect       = 'user-new.php';
 	$username       = $user_details->user_login;
 	$user_id        = $user_details->ID;
-	if ( $username != null && array_key_exists( $blog_id, get_blogs_of_user( $user_id ) ) ) {
+	if ( null != $username && array_key_exists( $blog_id, get_blogs_of_user( $user_id ) ) ) {
 		$redirect = add_query_arg( array( 'update' => 'addexisting' ), 'user-new.php' );
 	} else {
 		if ( isset( $_POST['noconfirmation'] ) && current_user_can( 'manage_network_users' ) ) {
@@ -105,14 +105,14 @@ if ( isset( $_REQUEST['action'] ) && 'adduser' == $_REQUEST['action'] ) {
 			 * @since 4.4.0
 			 *
 			 * @param int    $user_id     The invited user's ID.
-			 * @param array  $role        The role of invited user.
+			 * @param array  $role        Array containing role information for the invited user.
 			 * @param string $newuser_key The key of the invitation.
 			 */
 			do_action( 'invite_user', $user_id, $role, $newuser_key );
 
 			$switched_locale = switch_to_locale( get_user_locale( $user_details ) );
 
-			/* translators: 1: Site name, 2: site URL, 3: role, 4: activation URL */
+			/* translators: 1: Site title, 2: Site URL, 3: User role, 4: Activation URL. */
 			$message = __(
 				'Hi,
 
@@ -123,8 +123,21 @@ Please click the following link to confirm the invite:
 %4$s'
 			);
 
-			/* translators: Joining confirmation notification email subject. %s: Site title */
-			wp_mail( $new_user_email, sprintf( __( '[%s] Joining Confirmation' ), wp_specialchars_decode( get_option( 'blogname' ) ) ), sprintf( $message, get_option( 'blogname' ), home_url(), wp_specialchars_decode( translate_user_role( $role['name'] ) ), home_url( "/newbloguser/$newuser_key/" ) ) );
+			wp_mail(
+				$new_user_email,
+				sprintf(
+					/* translators: Joining confirmation notification email subject. %s: Site title. */
+					__( '[%s] Joining Confirmation' ),
+					wp_specialchars_decode( get_option( 'blogname' ) )
+				),
+				sprintf(
+					$message,
+					get_option( 'blogname' ),
+					home_url(),
+					wp_specialchars_decode( translate_user_role( $role['name'] ) ),
+					home_url( "/newbloguser/$newuser_key/" )
+				)
+			);
 
 			if ( $switched_locale ) {
 				restore_previous_locale();
@@ -161,7 +174,7 @@ Please click the following link to confirm the invite:
 			die();
 		}
 	} else {
-		// Adding a new user to this site
+		// Adding a new user to this site.
 		$new_user_email = wp_unslash( $_REQUEST['email'] );
 		$user_details   = wpmu_validate_user_signup( $_REQUEST['user_login'], $new_user_email );
 		if ( is_wp_error( $user_details['errors'] ) && $user_details['errors']->has_errors() ) {
@@ -170,8 +183,8 @@ Please click the following link to confirm the invite:
 			/** This filter is documented in wp-includes/user.php */
 			$new_user_login = apply_filters( 'pre_user_login', sanitize_user( wp_unslash( $_REQUEST['user_login'] ), true ) );
 			if ( isset( $_POST['noconfirmation'] ) && current_user_can( 'manage_network_users' ) ) {
-				add_filter( 'wpmu_signup_user_notification', '__return_false' ); // Disable confirmation email
-				add_filter( 'wpmu_welcome_user_notification', '__return_false' ); // Disable welcome email
+				add_filter( 'wpmu_signup_user_notification', '__return_false' );  // Disable confirmation email.
+				add_filter( 'wpmu_welcome_user_notification', '__return_false' ); // Disable welcome email.
 			}
 			wpmu_signup_user(
 				$new_user_login,
@@ -272,7 +285,7 @@ if ( is_multisite() && current_user_can( 'promote_users' ) && ! wp_is_large_netw
 	wp_enqueue_script( 'user-suggest' );
 }
 
-require_once( ABSPATH . 'wp-admin/admin-header.php' );
+require_once ABSPATH . 'wp-admin/admin-header.php';
 
 if ( isset( $_GET['update'] ) ) {
 	$messages = array();
@@ -296,11 +309,7 @@ if ( isset( $_GET['update'] ) ) {
 				$message = __( 'User has been added to your site.' );
 
 				if ( $edit_link ) {
-					$message .= sprintf(
-						' <a href="%s">%s</a>',
-						$edit_link,
-						__( 'Edit user' )
-					);
+					$message .= sprintf( ' <a href="%s">%s</a>', $edit_link, __( 'Edit user' ) );
 				}
 
 				$messages[] = $message;
@@ -437,7 +446,7 @@ if ( is_multisite() && current_user_can( 'promote_users' ) ) {
 	<?php submit_button( __( 'Add Existing User' ), 'primary', 'adduser', true, array( 'id' => 'addusersub' ) ); ?>
 </form>
 	<?php
-} // is_multisite()
+} // End if is_multisite().
 
 if ( current_user_can( 'create_users' ) ) {
 	if ( $do_both ) {
@@ -538,7 +547,7 @@ if ( current_user_can( 'create_users' ) ) {
 			<label for="send_user_notification"><?php _e( 'Send the new user an email about their account.' ); ?></label>
 		</td>
 	</tr>
-<?php } // !is_multisite ?>
+<?php } // End if ! is_multisite(). ?>
 	<tr class="form-field">
 		<th scope="row"><label for="role"><?php _e( 'Role' ); ?></label></th>
 		<td><select name="role" id="role">
@@ -570,7 +579,7 @@ if ( current_user_can( 'create_users' ) ) {
 	<?php submit_button( __( 'Add New User' ), 'primary', 'createuser', true, array( 'id' => 'createusersub' ) ); ?>
 
 </form>
-<?php } // current_user_can('create_users') ?>
+<?php } // End if current_user_can( 'create_users' ). ?>
 </div>
 <?php
-include( ABSPATH . 'wp-admin/admin-footer.php' );
+require_once ABSPATH . 'wp-admin/admin-footer.php';

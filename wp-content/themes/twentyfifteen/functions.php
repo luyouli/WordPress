@@ -100,6 +100,8 @@ if ( ! function_exists( 'twentyfifteen_setup' ) ) :
 				'comment-list',
 				'gallery',
 				'caption',
+				'script',
+				'style',
 			)
 		);
 
@@ -250,7 +252,7 @@ if ( ! function_exists( 'twentyfifteen_setup' ) ) :
 		// Indicate widget sidebars can use selective refresh in the Customizer.
 		add_theme_support( 'customize-selective-refresh-widgets' );
 	}
-endif; // twentyfifteen_setup
+endif; // twentyfifteen_setup()
 add_action( 'after_setup_theme', 'twentyfifteen_setup' );
 
 /**
@@ -289,7 +291,7 @@ if ( ! function_exists( 'twentyfifteen_fonts_url' ) ) :
 		$subsets   = 'latin,latin-ext';
 
 		/*
-		 * Translators: If there are characters in your language that are not supported
+		 * translators: If there are characters in your language that are not supported
 		 * by Noto Sans, translate this to 'off'. Do not translate into your own language.
 		 */
 		if ( 'off' !== _x( 'on', 'Noto Sans font: on or off', 'twentyfifteen' ) ) {
@@ -297,7 +299,7 @@ if ( ! function_exists( 'twentyfifteen_fonts_url' ) ) :
 		}
 
 		/*
-		 * Translators: If there are characters in your language that are not supported
+		 * translators: If there are characters in your language that are not supported
 		 * by Noto Serif, translate this to 'off'. Do not translate into your own language.
 		 */
 		if ( 'off' !== _x( 'on', 'Noto Serif font: on or off', 'twentyfifteen' ) ) {
@@ -305,7 +307,7 @@ if ( ! function_exists( 'twentyfifteen_fonts_url' ) ) :
 		}
 
 		/*
-		 * Translators: If there are characters in your language that are not supported
+		 * translators: If there are characters in your language that are not supported
 		 * by Inconsolata, translate this to 'off'. Do not translate into your own language.
 		 */
 		if ( 'off' !== _x( 'on', 'Inconsolata font: on or off', 'twentyfifteen' ) ) {
@@ -313,7 +315,7 @@ if ( ! function_exists( 'twentyfifteen_fonts_url' ) ) :
 		}
 
 		/*
-		 * Translators: To add an additional character subset specific to your language,
+		 * translators: To add an additional character subset specific to your language,
 		 * translate this to 'greek', 'cyrillic', 'devanagari' or 'vietnamese'. Do not translate into your own language.
 		 */
 		$subset = _x( 'no-subset', 'Add new subset (greek, cyrillic, devanagari, vietnamese)', 'twentyfifteen' );

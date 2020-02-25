@@ -72,7 +72,7 @@ function endElement( $parser, $tagName ) { // phpcs:ignore WordPress.NamingConve
 	// Nothing to do.
 }
 
-// Create an XML parser
+// Create an XML parser.
 if ( ! function_exists( 'xml_parser_create' ) ) {
 	trigger_error( __( "PHP's XML extension is not available. Please contact your hosting provider to enable PHP's XML extension." ) );
 	wp_die( __( "PHP's XML extension is not available. Please contact your hosting provider to enable PHP's XML extension." ) );
@@ -80,17 +80,17 @@ if ( ! function_exists( 'xml_parser_create' ) ) {
 
 $xml_parser = xml_parser_create();
 
-// Set the functions to handle opening and closing tags
+// Set the functions to handle opening and closing tags.
 xml_set_element_handler( $xml_parser, 'startElement', 'endElement' );
 
 if ( ! xml_parse( $xml_parser, $opml, true ) ) {
 	printf(
-		/* translators: 1: error message, 2: line number */
+		/* translators: 1: Error message, 2: Line number. */
 		__( 'XML Error: %1$s at line %2$s' ),
 		xml_error_string( xml_get_error_code( $xml_parser ) ),
 		xml_get_current_line_number( $xml_parser )
 	);
 }
 
-// Free up memory used by the XML parser
+// Free up memory used by the XML parser.
 xml_parser_free( $xml_parser );

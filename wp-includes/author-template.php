@@ -65,8 +65,8 @@ function the_author( $deprecated = '', $deprecated_echo = true ) {
 		_deprecated_argument(
 			__FUNCTION__,
 			'1.5.0',
-			/* translators: %s: get_the_author() */
 			sprintf(
+				/* translators: %s: get_the_author() */
 				__( 'Use %s instead if you do not want the value echoed.' ),
 				'<code>get_the_author()</code>'
 			)
@@ -231,7 +231,7 @@ function get_the_author_link() {
 		return sprintf(
 			'<a href="%1$s" title="%2$s" rel="author external">%3$s</a>',
 			esc_url( get_the_author_meta( 'url' ) ),
-			/* translators: %s: author's display name */
+			/* translators: %s: Author's display name. */
 			esc_attr( sprintf( __( 'Visit %s&#8217;s website' ), get_the_author() ) ),
 			get_the_author()
 		);
@@ -299,7 +299,7 @@ function get_the_author_posts_link() {
 	$link = sprintf(
 		'<a href="%1$s" title="%2$s" rel="author">%3$s</a>',
 		esc_url( get_author_posts_url( $authordata->ID, $authordata->user_nicename ) ),
-		/* translators: %s: author's display name */
+		/* translators: %s: Author's display name. */
 		esc_attr( sprintf( __( 'Posts by %s' ), get_the_author() ) ),
 		get_the_author()
 	);
@@ -398,7 +398,8 @@ function get_author_posts_url( $author_id, $author_nicename = '' ) {
  *                                       parameter of the link. Default empty.
  *     @type string       $feed_image    If not empty, show a link to the author's feed and use this image URL as
  *                                       clickable anchor. Default empty.
- *     @type string       $feed_type     The feed type to link to, such as 'rss2'. Defaults to default feed type.
+ *     @type string       $feed_type     The feed type to link to. Possible values include 'rss2', 'atom'.
+ *                                       Default is the value of get_default_feed().
  *     @type bool         $echo          Whether to output the result or instead return it. Default true.
  *     @type string       $style         If 'list', each author is wrapped in an `<li>` element, otherwise the authors
  *                                       will be separated by commas.
@@ -406,7 +407,7 @@ function get_author_posts_url( $author_id, $author_nicename = '' ) {
  *     @type array|string $exclude       Array or comma/space-separated list of author IDs to exclude. Default empty.
  *     @type array|string $include       Array or comma/space-separated list of author IDs to include. Default empty.
  * }
- * @return string|void The output, if echo is set to false.
+ * @return void|string Void if 'echo' argument is true, list of authors if 'echo' is false.
  */
 function wp_list_authors( $args = '' ) {
 	global $wpdb;
@@ -473,7 +474,7 @@ function wp_list_authors( $args = '' ) {
 		$link = sprintf(
 			'<a href="%1$s" title="%2$s">%3$s</a>',
 			get_author_posts_url( $author->ID, $author->user_nicename ),
-			/* translators: %s: author's display name */
+			/* translators: %s: Author's display name. */
 			esc_attr( sprintf( __( 'Posts by %s' ), $author->display_name ) ),
 			$name
 		);
@@ -517,10 +518,11 @@ function wp_list_authors( $args = '' ) {
 
 	$return = rtrim( $return, ', ' );
 
-	if ( ! $args['echo'] ) {
+	if ( $args['echo'] ) {
+		echo $return;
+	} else {
 		return $return;
 	}
-	echo $return;
 }
 
 /**
@@ -564,6 +566,6 @@ function is_multi_author() {
  * @since 3.2.0
  * @access private
  */
-function __clear_multi_author_cache() { //phpcs:ignore WordPress.NamingConventions.ValidFunctionName.FunctionDoubleUnderscore
+function __clear_multi_author_cache() { // phpcs:ignore WordPress.NamingConventions.ValidFunctionName.FunctionDoubleUnderscore,PHPCompatibility.FunctionNameRestrictions.ReservedFunctionNames.FunctionDoubleUnderscore
 	delete_transient( 'is_multi_author' );
 }

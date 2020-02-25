@@ -160,7 +160,7 @@ class WP_User {
 	/**
 	 * Sets up object properties, including capabilities.
 	 *
-	 * @since  3.3.0
+	 * @since 3.3.0
 	 *
 	 * @param object $data    User DB row object.
 	 * @param int    $site_id Optional. The site ID to initialize for.
@@ -444,7 +444,7 @@ class WP_User {
 	 */
 	public function __call( $name, $arguments ) {
 		if ( '_init_caps' === $name ) {
-			return call_user_func_array( array( $this, $name ), $arguments );
+			return $this->_init_caps( ...$arguments );
 		}
 		return false;
 	}
@@ -493,7 +493,7 @@ class WP_User {
 	 */
 	public function get_role_caps() {
 		$switch_site = false;
-		if ( is_multisite() && $this->site_id != get_current_blog_id() ) {
+		if ( is_multisite() && get_current_blog_id() != $this->site_id ) {
 			$switch_site = true;
 
 			switch_to_blog( $this->site_id );
@@ -590,7 +590,7 @@ class WP_User {
 	 * @param string $role Role name.
 	 */
 	public function set_role( $role ) {
-		if ( 1 == count( $this->roles ) && $role == current( $this->roles ) ) {
+		if ( 1 == count( $this->roles ) && current( $this->roles ) == $role ) {
 			return;
 		}
 
@@ -730,6 +730,8 @@ class WP_User {
 	 * may produce unreliable results.
 	 *
 	 * @since 2.0.0
+	 * @since 5.3.0 Formalized the existing and already documented `...$args` parameter
+	 *              by adding it to the function signature.
 	 *
 	 * @see map_meta_cap()
 	 *
@@ -862,7 +864,8 @@ class WP_User {
 	 *
 	 * @since 4.9.0
 	 *
-	 * @return array User capabilities array.
+	 * @return bool[] List of capabilities keyed by the capability name,
+	 *                e.g. array( 'edit_posts' => true, 'delete_posts' => false ).
 	 */
 	private function get_caps_data() {
 		$caps = get_user_meta( $this->ID, $this->cap_key, true );

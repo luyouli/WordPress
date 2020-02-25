@@ -4,7 +4,7 @@
  * @output wp-admin/js/privacy-tools.js
  */
 
-// Privacy request action handling
+// Privacy request action handling.
 jQuery( document ).ready( function( $ ) {
 	var strings = window.privacyToolsL10n || {};
 
@@ -59,6 +59,7 @@ jQuery( document ).ready( function( $ ) {
 		var $this          = $( this ),
 			$action        = $this.parents( '.export-personal-data' ),
 			$requestRow    = $this.parents( 'tr' ),
+			$progress      = $requestRow.find( '.export-progress' ),
 			requestID      = $action.data( 'request-id' ),
 			nonce          = $action.data( 'nonce' ),
 			exportersCount = $action.data( 'exporters-count' ),
@@ -69,9 +70,16 @@ jQuery( document ).ready( function( $ ) {
 
 		$action.blur();
 		clearResultsAfterRow( $requestRow );
+		setExportProgress( 0 );
 
 		function onExportDoneSuccess( zipUrl ) {
+			var summaryMessage = strings.emailSent;
+
 			setActionState( $action, 'export-personal-data-success' );
+
+			appendResultsAfterRow( $requestRow, 'notice-success', summaryMessage, [] );
+			$this.hide();
+
 			if ( 'undefined' !== typeof zipUrl ) {
 				window.location = zipUrl;
 			} else if ( ! sendAsEmail ) {
@@ -84,6 +92,12 @@ jQuery( document ).ready( function( $ ) {
 			if ( errorMessage ) {
 				appendResultsAfterRow( $requestRow, 'notice-error', strings.exportError, [ errorMessage ] );
 			}
+		}
+
+		function setExportProgress( exporterIndex ) {
+			var progress       = ( exportersCount > 0 ? exporterIndex / exportersCount : 0 );
+			var progressString = Math.round( progress * 100 ).toString() + '%';
+			$progress.html( progressString );
 		}
 
 		function doNextExport( exporterIndex, pageIndex ) {
@@ -105,7 +119,7 @@ jQuery( document ).ready( function( $ ) {
 
 				if ( ! response.success ) {
 
-					// e.g. invalid request ID
+					// e.g. invalid request ID.
 					onExportFailure( response.data );
 					return;
 				}
@@ -114,6 +128,7 @@ jQuery( document ).ready( function( $ ) {
 					setTimeout( doNextExport( exporterIndex, pageIndex + 1 ) );
 				} else {
 					if ( exporterIndex < exportersCount ) {
+						setExportProgress( exporterIndex );
 						setTimeout( doNextExport( exporterIndex + 1, 1 ) );
 					} else {
 						onExportDoneSuccess( responseData.url );
@@ -121,12 +136,12 @@ jQuery( document ).ready( function( $ ) {
 				}
 			}).fail( function( jqxhr, textStatus, error ) {
 
-				// e.g. Nonce failure
+				// e.g. Nonce failure.
 				onExportFailure( error );
 			});
 		}
 
-		// And now, let's begin
+		// And now, let's begin.
 		setActionState( $action, 'export-personal-data-processing' );
 		doNextExport( 1, 1 );
 	});
@@ -135,6 +150,7 @@ jQuery( document ).ready( function( $ ) {
 		var $this         = $( this ),
 			$action       = $this.parents( '.remove-personal-data' ),
 			$requestRow   = $this.parents( 'tr' ),
+			$progress     = $requestRow.find( '.erasure-progress' ),
 			requestID     = $action.data( 'request-id' ),
 			nonce         = $action.data( 'nonce' ),
 			erasersCount  = $action.data( 'erasers-count' ),
@@ -146,12 +162,13 @@ jQuery( document ).ready( function( $ ) {
 
 		$action.blur();
 		clearResultsAfterRow( $requestRow );
+		setErasureProgress( 0 );
 
 		function onErasureDoneSuccess() {
 			var summaryMessage = strings.noDataFound;
 			var classes = 'notice-success';
 
-			setActionState( $action, 'remove-personal-data-idle' );
+			setActionState( $action, 'remove-personal-data-success' );
 
 			if ( false === hasRemoved ) {
 				if ( false === hasRetained ) {
@@ -168,12 +185,19 @@ jQuery( document ).ready( function( $ ) {
 					classes = 'notice-warning';
 				}
 			}
-			appendResultsAfterRow( $requestRow, 'notice-success', summaryMessage, messages );
+			appendResultsAfterRow( $requestRow, classes, summaryMessage, messages );
+			$this.hide();
 		}
 
 		function onErasureFailure() {
 			setActionState( $action, 'remove-personal-data-failed' );
 			appendResultsAfterRow( $requestRow, 'notice-error', strings.removalError, [] );
+		}
+
+		function setErasureProgress( eraserIndex ) {
+			var progress       = ( erasersCount > 0 ? eraserIndex / erasersCount : 0 );
+			var progressString = Math.round( progress * 100 ).toString() + '%';
+			$progress.html( progressString );
 		}
 
 		function doNextErasure( eraserIndex, pageIndex ) {
@@ -207,6 +231,7 @@ jQuery( document ).ready( function( $ ) {
 					setTimeout( doNextErasure( eraserIndex, pageIndex + 1 ) );
 				} else {
 					if ( eraserIndex < erasersCount ) {
+						setErasureProgress( eraserIndex );
 						setTimeout( doNextErasure( eraserIndex + 1, 1 ) );
 					} else {
 						onErasureDoneSuccess();
@@ -217,7 +242,7 @@ jQuery( document ).ready( function( $ ) {
 			});
 		}
 
-		// And now, let's begin
+		// And now, let's begin.
 		setActionState( $action, 'remove-personal-data-processing' );
 
 		doNextErasure( 1, 1 );

@@ -19,7 +19,7 @@
  */
 ?>
 
-<?php /* Display navigation to next/previous pages when applicable */ ?>
+<?php // Display navigation to next/previous pages when applicable. ?>
 <?php if ( $wp_query->max_num_pages > 1 ) : ?>
 	<div id="nav-above" class="navigation">
 		<div class="nav-previous"><?php next_posts_link( __( '<span class="meta-nav">&larr;</span> Older posts', 'twentyten' ) ); ?></div>
@@ -86,15 +86,15 @@ while ( have_posts() ) :
 					<p><em>
 					<?php
 						printf(
-							/* translators: 1: HTML tag attributes, 2: image count */
+							/* translators: 1: HTML tag attributes, 2: Image count. */
 							_n( 'This gallery contains <a %1$s>%2$s photo</a>.', 'This gallery contains <a %1$s>%2$s photos</a>.', $total_images, 'twentyten' ),
-							/* translators: %s: post title */
+							/* translators: %s: Post title. */
 							'href="' . esc_url( get_permalink() ) . '" title="' . esc_attr( sprintf( __( 'Permalink to %s', 'twentyten' ), the_title_attribute( 'echo=0' ) ) ) . '" rel="bookmark"',
 							number_format_i18n( $total_images )
 						);
 					?>
 							</em></p>
-				<?php endif; // end twentyten_get_gallery_images() check ?>
+				<?php endif; // End twentyten_get_gallery_images() check. ?>
 						<?php the_excerpt(); ?>
 <?php endif; ?>
 			</div><!-- .entry-content -->
@@ -170,7 +170,7 @@ while ( have_posts() ) :
 				<?php if ( count( get_the_category() ) ) : ?>
 					<span class="cat-links">
 						<?php
-						/* translators: 1: CSS classes, 2: catgory list */
+						/* translators: 1: CSS classes, 2: Category list. */
 						printf( __( '<span class="%1$s">Posted in</span> %2$s', 'twentyten' ), 'entry-utility-prep entry-utility-prep-cat-links', get_the_category_list( ', ' ) );
 						?>
 					</span>
@@ -182,7 +182,7 @@ while ( have_posts() ) :
 					?>
 				<span class="tag-links">
 					<?php
-					/* translators: 1: CSS classes, 2: catgory list */
+					/* translators: 1: CSS classes, 2: Category list. */
 					printf( __( '<span class="%1$s">Tagged</span> %2$s', 'twentyten' ), 'entry-utility-prep entry-utility-prep-tag-links', $tags_list );
 					?>
 				</span>
@@ -197,9 +197,9 @@ while ( have_posts() ) :
 
 	<?php endif; // This was the if statement that broke the loop into three parts based on categories. ?>
 
-<?php endwhile; // End the loop. Whew. ?>
+<?php endwhile; // End of the loop. Whew. ?>
 
-<?php /* Display navigation to next/previous pages when applicable */ ?>
+<?php // Display navigation to next/previous pages when applicable. ?>
 <?php if ( $wp_query->max_num_pages > 1 ) : ?>
 				<div id="nav-below" class="navigation">
 					<div class="nav-previous"><?php next_posts_link( __( '<span class="meta-nav">&larr;</span> Older posts', 'twentyten' ) ); ?></div>

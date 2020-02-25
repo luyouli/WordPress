@@ -59,11 +59,13 @@ class WP_REST_Autosaves_Controller extends WP_REST_Revisions_Controller {
 	public function __construct( $parent_post_type ) {
 		$this->parent_post_type = $parent_post_type;
 		$post_type_object       = get_post_type_object( $parent_post_type );
+		$parent_controller      = $post_type_object->get_rest_controller();
 
-		// Ensure that post type-specific controller logic is available.
-		$parent_controller_class = ! empty( $post_type_object->rest_controller_class ) ? $post_type_object->rest_controller_class : 'WP_REST_Posts_Controller';
+		if ( ! $parent_controller ) {
+			$parent_controller = new WP_REST_Posts_Controller( $parent_post_type );
+		}
 
-		$this->parent_controller    = new $parent_controller_class( $post_type_object->name );
+		$this->parent_controller    = $parent_controller;
 		$this->revisions_controller = new WP_REST_Revisions_Controller( $parent_post_type );
 		$this->rest_namespace       = 'wp/v2';
 		$this->rest_base            = 'autosaves';
@@ -159,8 +161,13 @@ class WP_REST_Autosaves_Controller extends WP_REST_Revisions_Controller {
 		}
 
 		$parent_post_type_obj = get_post_type_object( $parent->post_type );
+
 		if ( ! current_user_can( $parent_post_type_obj->cap->edit_post, $parent->ID ) ) {
-			return new WP_Error( 'rest_cannot_read', __( 'Sorry, you are not allowed to view autosaves of this post.' ), array( 'status' => rest_authorization_required_code() ) );
+			return new WP_Error(
+				'rest_cannot_read',
+				__( 'Sorry, you are not allowed to view autosaves of this post.' ),
+				array( 'status' => rest_authorization_required_code() )
+			);
 		}
 
 		return true;
@@ -179,8 +186,13 @@ class WP_REST_Autosaves_Controller extends WP_REST_Revisions_Controller {
 	 */
 	public function create_item_permissions_check( $request ) {
 		$id = $request->get_param( 'id' );
+
 		if ( empty( $id ) ) {
-			return new WP_Error( 'rest_post_invalid_id', __( 'Invalid item ID.' ), array( 'status' => 404 ) );
+			return new WP_Error(
+				'rest_post_invalid_id',
+				__( 'Invalid item ID.' ),
+				array( 'status' => 404 )
+			);
 		}
 
 		return $this->parent_controller->update_item_permissions_check( $request );
@@ -212,7 +224,7 @@ class WP_REST_Autosaves_Controller extends WP_REST_Revisions_Controller {
 
 		if ( ( 'draft' === $post->post_status || 'auto-draft' === $post->post_status ) && $post->post_author == $user_id ) {
 			// Draft posts for the same author: autosaving updates the post and does not create a revision.
-			// Convert the post object to an array and add slashes, wp_update_post expects escaped array.
+			// Convert the post object to an array and add slashes, wp_update_post() expects escaped array.
 			$autosave_id = wp_update_post( wp_slash( (array) $prepared_post ), true );
 		} else {
 			// Non-draft posts: create or update the post autosave.
@@ -244,13 +256,21 @@ class WP_REST_Autosaves_Controller extends WP_REST_Revisions_Controller {
 		$parent_id = (int) $request->get_param( 'parent' );
 
 		if ( $parent_id <= 0 ) {
-			return new WP_Error( 'rest_post_invalid_id', __( 'Invalid post parent ID.' ), array( 'status' => 404 ) );
+			return new WP_Error(
+				'rest_post_invalid_id',
+				__( 'Invalid post parent ID.' ),
+				array( 'status' => 404 )
+			);
 		}
 
 		$autosave = wp_get_post_autosave( $parent_id );
 
 		if ( ! $autosave ) {
-			return new WP_Error( 'rest_post_no_autosave', __( 'There is no autosave revision for this post.' ), array( 'status' => 404 ) );
+			return new WP_Error(
+				'rest_post_no_autosave',
+				__( 'There is no autosave revision for this post.' ),
+				array( 'status' => 404 )
+			);
 		}
 
 		$response = $this->prepare_item_for_response( $autosave, $request );
@@ -296,6 +316,10 @@ class WP_REST_Autosaves_Controller extends WP_REST_Revisions_Controller {
 	 * @return array Item schema data.
 	 */
 	public function get_item_schema() {
+		if ( $this->schema ) {
+			return $this->add_additional_fields_schema( $this->schema );
+		}
+
 		$schema = $this->revisions_controller->get_item_schema();
 
 		$schema['properties']['preview_link'] = array(
@@ -306,7 +330,9 @@ class WP_REST_Autosaves_Controller extends WP_REST_Revisions_Controller {
 			'readonly'    => true,
 		);
 
-		return $schema;
+		$this->schema = $schema;
+
+		return $this->add_additional_fields_schema( $this->schema );
 	}
 
 	/**
@@ -350,15 +376,17 @@ class WP_REST_Autosaves_Controller extends WP_REST_Revisions_Controller {
 
 			if ( ! $autosave_is_different ) {
 				wp_delete_post_revision( $old_autosave->ID );
-				return new WP_Error( 'rest_autosave_no_changes', __( 'There is nothing to save. The autosave and the post content are the same.' ), array( 'status' => 400 ) );
+				return new WP_Error(
+					'rest_autosave_no_changes',
+					__( 'There is nothing to save. The autosave and the post content are the same.' ),
+					array( 'status' => 400 )
+				);
 			}
 
-			/**
-			 * This filter is documented in wp-admin/post.php.
-			 */
+			/** This filter is documented in wp-admin/post.php */
 			do_action( 'wp_creating_autosave', $new_autosave );
 
-			// wp_update_post expects escaped array.
+			// wp_update_post() expects escaped array.
 			return wp_update_post( wp_slash( $new_autosave ) );
 		}
 

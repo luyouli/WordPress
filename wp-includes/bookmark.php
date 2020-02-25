@@ -52,11 +52,11 @@ function get_bookmark( $bookmark, $output = OBJECT, $filter = 'raw' ) {
 
 	$_bookmark = sanitize_bookmark( $_bookmark, $filter );
 
-	if ( $output == OBJECT ) {
+	if ( OBJECT == $output ) {
 		return $_bookmark;
-	} elseif ( $output == ARRAY_A ) {
+	} elseif ( ARRAY_A == $output ) {
 		return get_object_vars( $_bookmark );
-	} elseif ( $output == ARRAY_N ) {
+	} elseif ( ARRAY_N == $output ) {
 		return array_values( get_object_vars( $_bookmark ) );
 	} else {
 		return $_bookmark;
@@ -106,11 +106,16 @@ function get_bookmark_field( $field, $bookmark, $context = 'display' ) {
  * @param string|array $args {
  *     Optional. String or array of arguments to retrieve bookmarks.
  *
- *     @type string   $orderby        How to order the links by. Accepts post fields. Default 'name'.
+ *     @type string   $orderby        How to order the links by. Accepts 'id', 'link_id', 'name', 'link_name',
+ *                                    'url', 'link_url', 'visible', 'link_visible', 'rating', 'link_rating',
+ *                                    'owner', 'link_owner', 'updated', 'link_updated', 'notes', 'link_notes',
+ *                                    'description', 'link_description', 'length' and 'rand'.
+ *                                    When `$orderby` is 'length', orders by the character length of
+ *                                    'link_name'. Default 'name'.
  *     @type string   $order          Whether to order bookmarks in ascending or descending order.
  *                                    Accepts 'ASC' (ascending) or 'DESC' (descending). Default 'ASC'.
- *     @type int      $limit          Amount of bookmarks to display. Accepts 1+ or -1 for all.
- *                                    Default -1.
+ *     @type int      $limit          Amount of bookmarks to display. Accepts any positive number or
+ *                                    -1 for all.  Default -1.
  *     @type string   $category       Comma-separated list of category ids to include links from.
  *                                    Default empty.
  *     @type string   $category_name  Category to retrieve links for by name. Default empty.
@@ -120,8 +125,11 @@ function get_bookmark_field( $field, $bookmark, $context = 'display' ) {
  *                                    Accepts 1|true or 0|false. Default 0|false.
  *     @type string   $include        Comma-separated list of bookmark IDs to include. Default empty.
  *     @type string   $exclude        Comma-separated list of bookmark IDs to exclude. Default empty.
+ *     @type string   $search         Search terms. Will be SQL-formatted with wildcards before and after
+ *                                    and searched in 'link_url', 'link_name' and 'link_description'.
+ *                                    Default empty.
  * }
- * @return array List of bookmark row objects.
+ * @return object[] List of bookmark row objects.
  */
 function get_bookmarks( $args = '' ) {
 	global $wpdb;
@@ -159,8 +167,8 @@ function get_bookmarks( $args = '' ) {
 			 *
 			 * @see get_bookmarks()
 			 *
-			 * @param array $bookmarks List of the cached bookmarks.
-			 * @param array $parsed_args         An array of bookmark query arguments.
+			 * @param array $bookmarks   List of the cached bookmarks.
+			 * @param array $parsed_args An array of bookmark query arguments.
 			 */
 			return apply_filters( 'get_bookmarks', $bookmarks, $parsed_args );
 		}
@@ -172,7 +180,7 @@ function get_bookmarks( $args = '' ) {
 
 	$inclusions = '';
 	if ( ! empty( $parsed_args['include'] ) ) {
-		$parsed_args['exclude']       = '';  //ignore exclude, category, and category_name params if using include
+		$parsed_args['exclude']       = '';  // Ignore exclude, category, and category_name params if using include.
 		$parsed_args['category']      = '';
 		$parsed_args['category_name'] = '';
 
@@ -297,7 +305,7 @@ function get_bookmarks( $args = '' ) {
 	$query  = "SELECT * $length $recently_updated_test $get_updated FROM $wpdb->links $join WHERE 1=1 $visible $category_query";
 	$query .= " $exclusions $inclusions $search";
 	$query .= " ORDER BY $orderby $order";
-	if ( $parsed_args['limit'] != -1 ) {
+	if ( -1 != $parsed_args['limit'] ) {
 		$query .= ' LIMIT ' . $parsed_args['limit'];
 	}
 
@@ -396,7 +404,7 @@ function sanitize_bookmark_field( $field, $value, $bookmark_id, $context ) {
 		case 'link_category': // array( ints )
 			$value = array_map( 'absint', (array) $value );
 			// We return here so that the categories aren't filtered.
-			// The 'link_category' filter is for the name of a link category, not an array of a link's link categories
+			// The 'link_category' filter is for the name of a link category, not an array of a link's link categories.
 			return $value;
 
 		case 'link_visible': // bool stored as Y|N

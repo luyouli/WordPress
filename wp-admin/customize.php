@@ -10,7 +10,7 @@
 define( 'IFRAME_REQUEST', true );
 
 /** Load WordPress Administration Bootstrap */
-require_once( dirname( __FILE__ ) . '/admin.php' );
+require_once __DIR__ . '/admin.php';
 
 if ( ! current_user_can( 'customize' ) ) {
 	wp_die(
@@ -207,6 +207,7 @@ do_action( 'customize_controls_print_scripts' );
 					<div class="accordion-section-title">
 						<span class="preview-notice">
 						<?php
+							/* translators: %s: The site/panel title in the Customizer. */
 							echo sprintf( __( 'You are customizing %s' ), '<strong class="panel-title site-title">' . get_bloginfo( 'name', 'display' ) . '</strong>' );
 						?>
 						</span>
